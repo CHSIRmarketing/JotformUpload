@@ -1,0 +1,46 @@
+[build]
+  publish = "./" 
+  functions = "netlify/functions"
+
+# CORS headers for all static files and pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Core CORS headers
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, Referer, User-Agent"
+    Access-Control-Expose-Headers = "Content-Length, Content-Type"
+    Access-Control-Allow-Credentials = "false"
+    Access-Control-Max-Age = "86400"
+    
+    # Iframe embedding headers
+    X-Frame-Options = "SAMEORIGIN"
+    Content-Security-Policy = "frame-ancestors 'self' *.jotform.com *.jotform.co *.jotform.eu *.jotforms.com https://embed.jotform.io"
+    
+    # Permissions Policy to allow media features for JotForm content
+    Permissions-Policy = "autoplay=(self \"https://form.jotform.com\" \"https://js.jotform.com\" \"https://widgets-cache.jotform.io\"), encrypted-media=(self \"https://form.jotform.com\" \"https://js.jotform.com\" \"https://widgets-cache.jotform.io\"), camera=(self \"https://form.jotform.com\"), microphone=(self \"https://form.jotform.com\")"
+    
+    # Security headers that allow widget functionality
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Content-Type-Options = "nosniff"
+    
+    # Cache control for widget files
+    Cache-Control = "public, max-age=3600"
+
+# Enhanced CORS headers for API functions
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    # Comprehensive CORS for API endpoints
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, Referer, User-Agent, X-Custom-Header"
+    Access-Control-Expose-Headers = "Content-Length, Content-Type, X-Custom-Header"
+    Access-Control-Allow-Credentials = "false"
+    Access-Control-Max-Age = "86400"
+    
+    # API-specific headers
+    Content-Type = "application/json"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+

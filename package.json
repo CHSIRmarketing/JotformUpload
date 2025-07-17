@@ -1,0 +1,26 @@
+{
+  "name": "trustform-jotform-wdk",
+  "version": "1.00",
+  "description": "TrustedForm custom widget for JotForm with server-side proxy,main: x.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^15.0.0"
+  },
+  "keywords": [
+    "trustedform",
+    "jotform",
+    "widget",
+    "proxy",
+    "netlify"
+  ],
+  "author": "",
+  "license": "MIT"
+}

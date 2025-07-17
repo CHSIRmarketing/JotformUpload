@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script
+      src="https://js.jotform.com/JotFormCustomWidget.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        font-family: Arial, sans-serif;
+      }
+
+      #main {
+        width: 100%;
+        min-height: 300px;
+        padding: 20px;
+        box-sizing: border-box;
+        background: #fff;
+      }
+
+      #dropZone {
+        border: 2px dashed #ccc;
+        padding: 30px;
+        margin-bottom: 20px;
+        cursor: pointer;
+        text-align: center;
+        background: #fafafa;
+        transition: background 0.3s ease;
+      }
+
+      #dropZone:hover {
+        background: #f0f0f0;
+      }
+
+      .image-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin: 20px 0;
+      }
+
+      .image-item {
+        position: relative;
+        width: var(--item-size, 120px);
+        height: var(--item-size, 120px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: visible;
+        padding: 4px;
+        padding-bottom: 15px;
+        justify-content: center;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 4px;
+      }
+
+      .image-item img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        cursor: pointer;
+        display: block;
+        border: none;
+      }
+
+      .image-number {
+        margin-top: 4px;
+        font-size: 14px;
+        color: #555;
+      }
+
+      .delete-btn {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: #ff4444;
+        border: none;
+        color: white;
+        width: 20px;
+        height: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .button-group {
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      .primary-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        background: #2b8ded;
+        color: white;
+        border-radius: 4px;
+        transition: background 0.3s ease;
+      }
+
+      .primary-btn:hover {
+        background: #1a7ad9;
+      }
+
+      .primary-btn:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
+
+      .primary-btn,
+      .gray-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .gray-btn {
+        background: #ccc;
+        color: #333;
+      }
+
+      #imagePreviewModal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        justify-content: center;
+        align-items: center;
+      }
+
+      #imagePreviewModal img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 0px;
+      }
+
+      #imagePreviewModal .close {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        font-size: 40px;
+        color: white;
+        cursor: pointer;
+      }
+
+      #imagePreviewModal .arrow {
+        position: absolute;
+        top: 50%;
+        font-size: 48px;
+        color: white;
+        cursor: pointer;
+        user-select: none;
+        padding: 10px;
+        z-index: 9999;
+        transform: translateY(-50%);
+      }
+
+      #imagePreviewModal .arrow.left {
+        left: 30px;
+      }
+
+      #imagePreviewModal .arrow.right {
+        right: 30px;
+      }
+
+      .image-number.over-limit {
+        color: #ff4444;
+        font-weight: bold;
+      }
+
+      .size-control {
+        margin: 20px 0;
+        text-align: center;
+      }
+
+      .size-control label {
+        margin-right: 10px;
+      }
+
+      input[type="range"] {
+        width: 200px;
+        margin: 0 10px;
+      }
+
+      #sliderValue {
+        display: inline-block;
+        min-width: 60px;
+        text-align: left;
+      }
+
+      /* Loading Spinner Styles */
+      .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #2b8ded;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        color: white;
+        margin-top: 10px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main">
+      <!-- Add loading spinner -->
+      <div id="loadingSpinner" class="loading-spinner">
+        <div>
+          <div class="spinner"></div>
+          <div class="loading-text">Uploading files...</div>
+        </div>
+      </div>
+      <div id="dropZone">
+        <p>Drag & drop photos or .zip file here or click to select a folder</p>
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        multiple
+        webkitdirectory
+        directory
+        accept=".jpg,.jpeg,.png,.zip"
+        style="display: none"
+      />
+
+      <div class="size-control">
+        <label for="sizeSlider">Preview Size:</label>
+        <input type="range" id="sizeSlider" min="60" max="240" value="120" />
+        <span id="sliderValue">120px</span>
+      </div>
+
+      <div id="imagePreview" class="image-grid"></div>
+
+      <div class="button-group">
+        <button id="uploadBtn" class="primary-btn">
+          Submit Your High-Res Photos
+        </button>
+        <div>
+          <button id="downloadBtn" class="gray-btn">
+            Download Your Re-Ordered Photos
+          </button>
+        </div>
+      </div>
+
+      <div id="imagePreviewModal">
+        <span class="close">&times;</span>
+        <div class="arrow left">&#10094;</div>
+        <img id="modalImage" src="" />
+        <div class="arrow right">&#10095;</div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      let filesList = [];
+      let currentIndex = -1;
+      let maxFiles = 50;
+      let allowedTypes = ["jpg", "jpeg", "png", "zip"];
+      let hasImages = false;
+      let address = "";
+      let addressNumber = "";
+      let isUploading = false;
+      let hasSubmitted = false; // New flag to track if files have been uploaded
+
+      // Converts a File object to a base64 string (without the data: prefix)
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            // Remove the data:*/*;base64, prefix
+            const base64 = reader.result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function calculateRequiredHeight() {
+        const mainElement = document.getElementById("main");
+        const contentHeight = mainElement.scrollHeight;
+        return Math.max(contentHeight + 20, 300);
+      }
+
+      function updateIframeHeight() {
+        if (hasImages) {
+          const height = calculateRequiredHeight();
+          JFCustomWidget.requestFrameResize({
+            height: height,
+          });
+        }
+      }
+
+      function setNextButtonState(enabled) {
+        if (typeof JFCustomWidget !== "undefined") {
+          console.log("🔧 Setting Next button state to:", enabled);
+          if (enabled) {
+            JFCustomWidget.sendSubmit({
+              valid: true,
+              value: JSON.stringify({
+                files: filesList.map((file) => ({
+                  name: file.name,
+                  type: file.type,
+                  size: file.size,
+                })),
+                address,
+                addressNumber,
+              }),
+            });
+          } else {
+            // Explicitly disable the Next button
+            JFCustomWidget.sendSubmit({
+              valid: false,
+              value: "",
+            });
+          }
+        } else {
+          console.log("⚠️ JFCustomWidget not available");
+        }
+      }
+
+      // File handling functions
+      function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = (e) => reject(new Error("Error reading file"));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function addImageToGrid(dataUrl, fileRef = null) {
+        hasImages = true;
+        const imageItem = document.createElement("div");
+        imageItem.className = "image-item";
+
+        const img = document.createElement("img");
+        img.src = dataUrl;
+
+        img.onload = () => {
+          const ratio = img.naturalWidth / img.naturalHeight;
+          if (ratio > 1) {
+            img.style.width = "100%";
+            img.style.height = "auto";
+          } else {
+            img.style.height = "100%";
+            img.style.width = "auto";
+          }
+          updateIframeHeight();
+        };
+
+        const number = document.createElement("div");
+        number.className = "image-number";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerText = "×";
+        deleteBtn.onclick = (ev) => {
+          ev.stopPropagation();
+          imagePreview.removeChild(imageItem);
+          if (fileRef) {
+            filesList = filesList.filter((f) => f !== fileRef);
+          }
+          // Check if we still have images
+          hasImages = imagePreview.querySelectorAll(".image-item").length > 0;
+          updateImageNumbers();
+          updateIframeHeight();
+
+          // Reset Next button state when files are modified
+          setNextButtonState(false);
+        };
+
+        imageItem.appendChild(img);
+        imageItem.appendChild(deleteBtn);
+        imageItem.appendChild(number);
+        imagePreview.appendChild(imageItem);
+
+        updateImageNumbers();
+        updateIframeHeight();
+
+        // Reset Next button state when files are modified
+        setNextButtonState(false);
+      }
+
+      async function handleFiles(fileList) {
+        let allFiles = [];
+        const fileArray = Array.from(fileList);
+
+        for (let file of fileArray) {
+          if (file.name.endsWith(".zip")) {
+            await handleZip(file);
+          } else if (file.type.startsWith("image/")) {
+            allFiles.push(file);
+          }
+        }
+
+        allFiles.sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true })
+        );
+
+        for (let file of allFiles) {
+          try {
+            const dataUrl = await fileToDataUrl(file);
+            addImageToGrid(dataUrl, file);
+            filesList.push(file);
+          } catch (err) {
+            console.error(`Error processing file ${file.name}:`, err);
+          }
+        }
+
+        updateIframeHeight();
+      }
+
+      async function handleZip(zipFile) {
+        const zip = await JSZip.loadAsync(zipFile);
+        const entries = Object.keys(zip.files)
+          .filter(
+            (name) => /\.(jpe?g|png)$/i.test(name) && !zip.files[name].dir
+          )
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        for (const filename of entries) {
+          const file = zip.files[filename];
+          const blob = await file.async("blob");
+          const newFile = new File([blob], filename, { type: blob.type });
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            addImageToGrid(e.target.result, newFile);
+            filesList.push(newFile);
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+
+      function updateImageNumbers() {
+        const items = imagePreview.querySelectorAll(".image-item");
+        items.forEach((item, index) => {
+          const numberDiv = item.querySelector(".image-number");
+          numberDiv.innerText = index + 1;
+          if (index >= maxFiles) {
+            numberDiv.classList.add("over-limit");
+          } else {
+            numberDiv.classList.remove("over-limit");
+          }
+        });
+      }
+
+      async function getDropboxAccessToken() {
+        const res = await fetch("/.netlify/functions/getDropboxToken");
+        if (!res.ok) throw new Error("Failed to get Dropbox token");
+        const data = await res.json();
+        if (!data.access_token) throw new Error("No access token received");
+        return data.access_token;
+      }
+
+      async function uploadFileToDropbox(file, accessToken, dropboxPath) {
+        // Sanitize the path to meet Dropbox requirements
+        const sanitizedPath = dropboxPath
+          .replace(/\/+/g, "/") // Remove duplicate slashes
+          .replace(/^\/+/, "") // Remove leading slashes
+          .replace(/[^\w\-./]/g, "_"); // Replace invalid chars with underscores
+
+        const url = "https://content.dropboxapi.com/2/files/upload";
+        const args = {
+          path: `/${sanitizedPath}`,
+          mode: "add",
+          autorename: true,
+          mute: false,
+        };
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            "Dropbox-API-Arg": JSON.stringify(args),
+            "Content-Type": "application/octet-stream",
+          },
+          body: file,
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return await res.json();
+      }
+
+      const NETLIFY_FUNCTION_URL =
+        "https://enchanting-yeot-441fa1.netlify.app/.netlify/functions/dropbox-storage";
+
+      async function fetchLatestAddress() {
+        try {
+          const response = await fetch(NETLIFY_FUNCTION_URL);
+          if (response.ok) {
+            const data = await response.json();
+            console.log("🟢 [Proxy result ) = ", "success", data);
+            address = data.address;
+            addressNumber = data.unitNumber;
+            return data; // <-- return the fetched data
+          } else {
+            console.log("🟢 [Proxy result ) = ", "error", response);
+            return null; // <-- return null on error
+          }
+        } catch (err) {
+          console.error(err);
+          return null; // <-- return null on exception
+        }
+      }
+      JFCustomWidget.subscribe("ready", function () {
+        // Initial address fetch
+        fetchLatestAddress();
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (typeof JFCustomWidget !== "undefined") {
+          console.log("🟢 [JotForm Custom Widget API available )");
+        }
+
+        // Get widget settings
+        const settings = JFCustomWidget.getWidgetSettings();
+        if (settings) {
+          maxFiles = parseInt(settings.maxFiles) || 50;
+          if (settings.allowedTypes) {
+            allowedTypes = settings.allowedTypes
+              .split(",")
+              .map((type) => type.trim());
+          }
+        }
+
+        // Set initial fixed height
+        JFCustomWidget.requestFrameResize({
+          height: 300,
+        });
+
+        // Set initial Next button state (disabled until API upload succeeds)
+        setNextButtonState(false);
+
+        // Also mark widget as invalid on load to ensure Next button is disabled
+        JFCustomWidget.sendSubmit({
+          valid: false,
+          value: "",
+        });
+
+        const dropZone = document.getElementById("dropZone");
+        const fileInput = document.getElementById("fileInput");
+        const imagePreview = document.getElementById("imagePreview");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const sizeSlider = document.getElementById("sizeSlider");
+        const sliderValue = document.getElementById("sliderValue");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const loadingSpinner = document.getElementById("loadingSpinner");
+
+        // Initialize Sortable
+        new Sortable(imagePreview, {
+          animation: 150,
+          onSort: function () {
+            updateImageNumbers();
+            updateIframeHeight();
+
+            // Reset Next button state when files are reordered (requires re-upload)
+            setNextButtonState(false);
+          },
+        });
+
+        // Event Listeners
+        dropZone.addEventListener("click", () => fileInput.click());
+
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropZone.style.background = "#eef";
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.style.background = "";
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.style.background = "";
+          const isFolderDrop = [...e.dataTransfer.items].some(
+            (item) =>
+              item.kind === "file" &&
+              item.webkitGetAsEntry &&
+              item.webkitGetAsEntry().isDirectory
+          );
+          if (isFolderDrop) {
+            alert(
+              "To upload a folder, please click the drop area and select it."
+            );
+            return;
+          }
+          handleFiles(e.dataTransfer.files);
+        });
+
+        //download re-arragne files as a zip
+        downloadBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+
+          const zip = new JSZip();
+          const images = imagePreview.querySelectorAll(".image-item img");
+
+          for (let i = 0; i < images.length; i++) {
+            const dataURL = images[i].src;
+            const blob = await (await fetch(dataURL)).blob();
+            zip.file(`${i + 1}.jpg`, blob);
+          }
+
+          const blob = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "renumbered_photos.zip";
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+
+        fileInput.addEventListener("change", (e) => {
+          handleFiles(e.target.files);
+          e.target.value = "";
+        });
+
+        sizeSlider.addEventListener("input", () => {
+          const newSize = sizeSlider.value + "px";
+          document.documentElement.style.setProperty("--item-size", newSize);
+          sliderValue.textContent = newSize;
+          updateIframeHeight();
+        });
+
+        // Modal functionality
+        const modal = document.getElementById("imagePreviewModal");
+        const modalImg = document.getElementById("modalImage");
+        const modalClose = document.querySelector("#imagePreviewModal .close");
+
+        imagePreview.addEventListener("click", (e) => {
+          if (e.target.tagName === "IMG") {
+            const images = Array.from(imagePreview.querySelectorAll("img"));
+            currentIndex = images.indexOf(e.target);
+            showModalImage(currentIndex);
+          }
+        });
+
+        function showModalImage(index) {
+          const images = imagePreview.querySelectorAll("img");
+          if (index >= 0 && index < images.length) {
+            modalImg.src = images[index].src;
+            modal.style.display = "flex";
+            currentIndex = index;
+          }
+        }
+
+        document.querySelector("#imagePreviewModal .arrow.left").onclick = (
+          e
+        ) => {
+          e.stopPropagation();
+          showModalImage(currentIndex - 1);
+        };
+
+        document.querySelector("#imagePreviewModal .arrow.right").onclick = (
+          e
+        ) => {
+          e.stopPropagation();
+          showModalImage(currentIndex + 1);
+        };
+
+        modalClose.onclick = () => {
+          modal.style.display = "none";
+        };
+
+        window.addEventListener("click", (e) => {
+          if (e.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            modal.style.display = "none";
+          } else if (modal.style.display === "flex") {
+            if (e.key === "ArrowLeft") {
+              showModalImage(currentIndex - 1);
+            } else if (e.key === "ArrowRight") {
+              showModalImage(currentIndex + 1);
+            }
+          }
+        });
+
+        // Subscribe to form submit
+        JFCustomWidget.subscribe("submit", function () {
+          // Prevent form submission if no files have been uploaded
+          if (!hasSubmitted) {
+            alert("Please upload your photos first before proceeding.");
+            return;
+          }
+        });
+
+        uploadBtn.addEventListener("click", async function (e) {
+          e.preventDefault();
+          if (isUploading) return;
+          if (filesList.length === 0) {
+            alert("Please select files first.");
+            return;
+          }
+
+          try {
+            isUploading = true;
+            setNextButtonState(false);
+            loadingSpinner.style.display = "flex";
+
+            const totalImages =
+              imagePreview.querySelectorAll(".image-item").length;
+            if (totalImages === 0) {
+              alert("Please upload at least one photo before proceeding.");
+              return;
+            }
+
+            if (totalImages > maxFiles) {
+              const proceed = confirm(
+                `Maximum ${maxFiles} photos allowed.\n\nPlease remove ${
+                  totalImages - maxFiles
+                } photos to continue.`
+              );
+              if (!proceed) return; // Exit if user doesn't want to proceed
+              // If they do proceed, we still shouldn't allow the upload
+              alert(
+                `Cannot proceed with ${totalImages} photos. Maximum is ${maxFiles}.`
+              );
+              return;
+            }
+
+            const accessToken = await getDropboxAccessToken();
+            let count = 0;
+
+            // Create a clean folder name
+            const folderName = `${address} ${addressNumber}`
+              .replace(/[^\w\- ]/g, "") // Remove special chars
+              .replace(/\s+/g, " ") // Collapse multiple spaces
+              .trim();
+
+            function dataURLtoFile(dataurl, filename) {
+              var arr = dataurl.split(","),
+                mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[arr.length - 1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+              while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+              }
+              return new File([u8arr], filename, { type: mime });
+            }
+
+            const images = imagePreview.querySelectorAll(".image-item img");
+
+            for (let i = 0; i < images.length; i++) {
+              const dataURL = images[i].src;
+
+              var file = dataURLtoFile(dataURL, `${count + 1}.jpg`);
+
+              console.log("checking files", file);
+              try {
+                count++;
+                const dropboxPath = `Listings/${folderName}/${count}.jpg`;
+                await uploadFileToDropbox(file, accessToken, dropboxPath);
+                console.log(
+                  `Uploaded ${count}/${filesList.length}: ${file.name}`
+                );
+              } catch (err) {
+                console.error(`Error uploading ${file.name}:`, err);
+                throw err; // Stop on first error
+              }
+            }
+
+            hasSubmitted = true;
+            setNextButtonState(true);
+            alert("✅ All files uploaded successfully!");
+          } catch (err) {
+            console.error("Upload error:", err);
+            alert(`Upload failed: ${err.message}`);
+            hasSubmitted = false;
+            setNextButtonState(false);
+          } finally {
+            loadingSpinner.style.display = "none";
+            isUploading = false;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
