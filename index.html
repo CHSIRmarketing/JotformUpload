@@ -304,6 +304,7 @@
 
     <script type="text/javascript">
       let filesList = [];
+      let preGeneratedFiles = []; // Store pre-generated File objects
       let currentIndex = -1;
       let maxFiles = 50;
       let allowedTypes = ["jpg", "jpeg", "png", "zip"];
@@ -312,6 +313,7 @@
       let addressNumber = "";
       let isUploading = false;
       let hasSubmitted = false; // New flag to track if files have been uploaded
+      let maxConcurrency = 10; // Limit concurrent uploads
 
       // Converts a File object to a base64 string (without the data: prefix)
       function fileToBase64(file) {
@@ -325,6 +327,132 @@
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
+      }
+
+      // Convert base64 data URL to File object
+      function dataURLtoFile(dataurl, filename) {
+        const arr = dataurl.split(",");
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[arr.length - 1]);
+        const n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        for (let i = 0; i < n; i++) {
+          u8arr[i] = bstr.charCodeAt(i);
+        }
+        return new File([u8arr], filename, { type: mime });
+      }
+
+      // Pre-generate File objects from current image order
+      function preGenerateFileObjects() {
+        preGeneratedFiles = [];
+        const images = imagePreview.querySelectorAll(".image-item img");
+
+        images.forEach((img, index) => {
+          const filename = `${index + 1}.jpg`;
+          const file = dataURLtoFile(img.src, filename);
+          preGeneratedFiles.push({
+            file: file,
+            originalIndex: index,
+            filename: filename,
+          });
+        });
+
+        console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
+      }
+
+      // Upload with retry logic
+      async function uploadWithRetry(
+        fileObj,
+        accessToken,
+        dropboxPath,
+        maxRetries = 3
+      ) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            return await uploadFileToDropbox(
+              fileObj.file,
+              accessToken,
+              dropboxPath
+            );
+          } catch (error) {
+            console.warn(
+              `Upload attempt ${attempt} failed for ${fileObj.filename}:`,
+              error.message
+            );
+
+            if (attempt === maxRetries) {
+              throw new Error(
+                `Upload failed after ${maxRetries} attempts: ${error.message}`
+              );
+            }
+
+            // Exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+      }
+
+      // Parallel upload with concurrency control
+      async function uploadFilesInParallel(
+        fileObjects,
+        accessToken,
+        folderName
+      ) {
+        const results = [];
+        const executing = [];
+        let completed = 0;
+
+        for (const fileObj of fileObjects) {
+          const dropboxPath = `Listings/${folderName}/${fileObj.filename}`;
+
+          const uploadPromise = uploadWithRetry(
+            fileObj,
+            accessToken,
+            dropboxPath
+          )
+            .then((result) => {
+              completed++;
+              console.log(
+                `✅ Uploaded ${completed}/${fileObjects.length}: ${fileObj.filename}`
+              );
+
+              // Update loading text
+              const loadingText = document.querySelector(".loading-text");
+              if (loadingText) {
+                loadingText.textContent = `Uploading files... ${completed}/${fileObjects.length}`;
+              }
+
+              return { success: true, filename: fileObj.filename, result };
+            })
+            .catch((error) => {
+              console.error(
+                `❌ Failed to upload ${fileObj.filename}:`,
+                error.message
+              );
+              return {
+                success: false,
+                filename: fileObj.filename,
+                error: error.message,
+              };
+            })
+            .finally(() => {
+              // Remove from executing array
+              const index = executing.indexOf(uploadPromise);
+              if (index > -1) executing.splice(index, 1);
+            });
+
+          results.push(uploadPromise);
+          executing.push(uploadPromise);
+
+          // Wait if we've reached max concurrency
+          if (executing.length >= maxConcurrency) {
+            await Promise.race(executing);
+          }
+        }
+
+        // Wait for all uploads to complete
+        return Promise.all(results);
       }
 
       function calculateRequiredHeight() {
@@ -416,6 +544,9 @@
           hasImages = imagePreview.querySelectorAll(".image-item").length > 0;
           updateImageNumbers();
           updateIframeHeight();
+
+          // Clear pre-generated files when images are modified
+          preGeneratedFiles = [];
 
           // Reset Next button state when files are modified
           setNextButtonState(false);
@@ -603,6 +734,9 @@
             updateImageNumbers();
             updateIframeHeight();
 
+            // Clear pre-generated files when order changes
+            preGeneratedFiles = [];
+
             // Reset Next button state when files are reordered (requires re-upload)
             setNextButtonState(false);
           },
@@ -638,26 +772,45 @@
           handleFiles(e.dataTransfer.files);
         });
 
-        //download re-arragne files as a zip
+        //download re-arrange files as a zip
         downloadBtn.addEventListener("click", async (e) => {
           e.preventDefault();
 
-          const zip = new JSZip();
-          const images = imagePreview.querySelectorAll(".image-item img");
+          try {
+            const zip = new JSZip();
+            const images = imagePreview.querySelectorAll(".image-item img");
 
-          for (let i = 0; i < images.length; i++) {
-            const dataURL = images[i].src;
-            const blob = await (await fetch(dataURL)).blob();
-            zip.file(`${i + 1}.jpg`, blob);
+            if (images.length === 0) {
+              alert("No images to download.");
+              return;
+            }
+
+            // Use pre-generated files if available, otherwise generate on-demand
+            if (preGeneratedFiles.length === images.length) {
+              console.log("Using pre-generated files for download");
+              preGeneratedFiles.forEach((fileObj) => {
+                zip.file(fileObj.filename, fileObj.file);
+              });
+            } else {
+              console.log("Generating files on-demand for download");
+              for (let i = 0; i < images.length; i++) {
+                const dataURL = images[i].src;
+                const blob = await (await fetch(dataURL)).blob();
+                zip.file(`${i + 1}.jpg`, blob);
+              }
+            }
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "renumbered_photos.zip";
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (err) {
+            console.error("Download error:", err);
+            alert("Failed to create download. Please try again.");
           }
-
-          const blob = await zip.generateAsync({ type: "blob" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "renumbered_photos.zip";
-          a.click();
-          URL.revokeObjectURL(url);
         });
 
         fileInput.addEventListener("change", (e) => {
@@ -742,8 +895,21 @@
         uploadBtn.addEventListener("click", async function (e) {
           e.preventDefault();
           if (isUploading) return;
-          if (filesList.length === 0) {
-            alert("Please select files first.");
+
+          const totalImages =
+            imagePreview.querySelectorAll(".image-item").length;
+
+          if (totalImages === 0) {
+            alert("Please upload at least one photo before proceeding.");
+            return;
+          }
+
+          if (totalImages > maxFiles) {
+            alert(
+              `Cannot proceed with ${totalImages} photos. Maximum is ${maxFiles}.\n\nPlease remove ${
+                totalImages - maxFiles
+              } photos to continue.`
+            );
             return;
           }
 
@@ -752,29 +918,23 @@
             setNextButtonState(false);
             loadingSpinner.style.display = "flex";
 
-            const totalImages =
-              imagePreview.querySelectorAll(".image-item").length;
-            if (totalImages === 0) {
-              alert("Please upload at least one photo before proceeding.");
-              return;
+            // Update loading text
+            const loadingText = document.querySelector(".loading-text");
+            if (loadingText) {
+              loadingText.textContent = "Preparing files...";
             }
 
-            if (totalImages > maxFiles) {
-              const proceed = confirm(
-                `Maximum ${maxFiles} photos allowed.\n\nPlease remove ${
-                  totalImages - maxFiles
-                } photos to continue.`
-              );
-              if (!proceed) return; // Exit if user doesn't want to proceed
-              // If they do proceed, we still shouldn't allow the upload
-              alert(
-                `Cannot proceed with ${totalImages} photos. Maximum is ${maxFiles}.`
-              );
-              return;
+            // Pre-generate File objects to preserve order and filenames
+            console.log("🔄 Pre-generating File objects...");
+            preGenerateFileObjects();
+
+            if (preGeneratedFiles.length === 0) {
+              throw new Error("No files to upload");
             }
 
+            // Get Dropbox access token
+            console.log("🔄 Getting Dropbox access token...");
             const accessToken = await getDropboxAccessToken();
-            let count = 0;
 
             // Create a clean folder name
             const folderName = `${address} ${addressNumber}`
@@ -782,50 +942,87 @@
               .replace(/\s+/g, " ") // Collapse multiple spaces
               .trim();
 
-            function dataURLtoFile(dataurl, filename) {
-              var arr = dataurl.split(","),
-                mime = arr[0].match(/:(.*?);/)[1],
-                bstr = atob(arr[arr.length - 1]),
-                n = bstr.length,
-                u8arr = new Uint8Array(n);
-              while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-              }
-              return new File([u8arr], filename, { type: mime });
-            }
+            console.log(
+              `🔄 Starting parallel upload of ${preGeneratedFiles.length} files to folder: ${folderName}`
+            );
 
-            const images = imagePreview.querySelectorAll(".image-item img");
+            // Upload files in parallel with concurrency control
+            const uploadResults = await uploadFilesInParallel(
+              preGeneratedFiles,
+              accessToken,
+              folderName
+            );
 
-            for (let i = 0; i < images.length; i++) {
-              const dataURL = images[i].src;
+            // Check results
+            const successful = uploadResults.filter((r) => r.success);
+            const failed = uploadResults.filter((r) => !r.success);
 
-              var file = dataURLtoFile(dataURL, `${count + 1}.jpg`);
+            console.log(
+              `✅ Upload completed: ${successful.length} successful, ${failed.length} failed`
+            );
 
-              console.log("checking files", file);
-              try {
-                count++;
-                const dropboxPath = `Listings/${folderName}/${count}.jpg`;
-                await uploadFileToDropbox(file, accessToken, dropboxPath);
-                console.log(
-                  `Uploaded ${count}/${filesList.length}: ${file.name}`
+            if (failed.length > 0) {
+              const failedFiles = failed.map((f) => f.filename).join(", ");
+              const errorMessages = failed
+                .map((f) => `${f.filename}: ${f.error}`)
+                .join("\n");
+
+              console.error("Failed uploads:", errorMessages);
+
+              if (successful.length > 0) {
+                const proceed = confirm(
+                  `⚠️ ${failed.length} files failed to upload:\n${failedFiles}\n\n` +
+                    `${successful.length} files uploaded successfully.\n\n` +
+                    `Would you like to proceed anyway, or retry the failed uploads?`
                 );
-              } catch (err) {
-                console.error(`Error uploading ${file.name}:`, err);
-                throw err; // Stop on first error
+
+                if (!proceed) {
+                  throw new Error(
+                    `Upload incomplete: ${failed.length} files failed`
+                  );
+                }
+              } else {
+                throw new Error(`All uploads failed:\n${errorMessages}`);
               }
             }
 
             hasSubmitted = true;
             setNextButtonState(true);
-            alert("✅ All files uploaded successfully!");
+
+            const message =
+              failed.length > 0
+                ? `✅ Upload completed with ${failed.length} failures.\n${successful.length}/${uploadResults.length} files uploaded successfully!`
+                : `✅ All ${successful.length} files uploaded successfully!`;
+
+            alert(message);
           } catch (err) {
             console.error("Upload error:", err);
-            alert(`Upload failed: ${err.message}`);
+
+            let errorMessage = "Upload failed";
+            if (err.message.includes("token")) {
+              errorMessage = "Authentication failed. Please try again.";
+            } else if (
+              err.message.includes("network") ||
+              err.message.includes("fetch")
+            ) {
+              errorMessage =
+                "Network error. Please check your connection and try again.";
+            } else {
+              errorMessage = `Upload failed: ${err.message}`;
+            }
+
+            alert(`❌ ${errorMessage}`);
             hasSubmitted = false;
             setNextButtonState(false);
           } finally {
             loadingSpinner.style.display = "none";
             isUploading = false;
+
+            // Reset loading text
+            const loadingText = document.querySelector(".loading-text");
+            if (loadingText) {
+              loadingText.textContent = "Uploading files...";
+            }
           }
         });
       });
