@@ -251,6 +251,88 @@
         margin-top: 10px;
         font-size: 16px;
       }
+
+      /* Custom Confirmation Dialog Styles */
+      .custom-confirm {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .confirm-dialog {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        text-align: center;
+      }
+
+      .confirm-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 16px;
+        color: #333;
+      }
+
+      .confirm-message {
+        font-size: 14px;
+        line-height: 1.4;
+        margin-bottom: 24px;
+        color: #666;
+        white-space: pre-line;
+      }
+
+      .confirm-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      .confirm-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        min-width: 80px;
+        transition: background 0.3s ease;
+      }
+
+      .confirm-btn.retry {
+        background: #2b8ded;
+        color: white;
+      }
+
+      .confirm-btn.retry:hover {
+        background: #1a7ad9;
+      }
+
+      .confirm-btn.proceed {
+        background: #28a745;
+        color: white;
+      }
+
+      .confirm-btn.proceed:hover {
+        background: #218838;
+      }
+
+      .confirm-btn.cancel {
+        background: #6c757d;
+        color: white;
+      }
+
+      .confirm-btn.cancel:hover {
+        background: #5a6268;
+      }
     </style>
   </head>
   <body>
@@ -300,6 +382,23 @@
         <img id="modalImage" src="" />
         <div class="arrow right">&#10095;</div>
       </div>
+
+      <!-- Custom Confirmation Dialog -->
+      <div id="customConfirm" class="custom-confirm">
+        <div class="confirm-dialog">
+          <div id="confirmTitle" class="confirm-title"></div>
+          <div id="confirmMessage" class="confirm-message"></div>
+          <div class="confirm-buttons">
+            <button id="confirmRetry" class="confirm-btn retry">Retry</button>
+            <button id="confirmProceed" class="confirm-btn proceed">
+              Proceed
+            </button>
+            <button id="confirmCancel" class="confirm-btn cancel">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="text/javascript">
@@ -314,6 +413,75 @@
       let isUploading = false;
       let hasSubmitted = false; // New flag to track if files have been uploaded
       let maxConcurrency = 10; // Limit concurrent uploads
+
+      // Custom confirmation dialog
+      function showCustomConfirm(title, message, options = {}) {
+        return new Promise((resolve) => {
+          const modal = document.getElementById("customConfirm");
+          const titleEl = document.getElementById("confirmTitle");
+          const messageEl = document.getElementById("confirmMessage");
+          const retryBtn = document.getElementById("confirmRetry");
+          const proceedBtn = document.getElementById("confirmProceed");
+          const cancelBtn = document.getElementById("confirmCancel");
+
+          titleEl.textContent = title;
+          messageEl.textContent = message;
+
+          // Configure buttons based on options
+          if (options.showProceed !== false) {
+            proceedBtn.style.display = "inline-block";
+            proceedBtn.textContent = options.proceedText || "Proceed";
+          } else {
+            proceedBtn.style.display = "none";
+          }
+
+          if (options.showRetry !== false) {
+            retryBtn.style.display = "inline-block";
+            retryBtn.textContent = options.retryText || "Retry";
+          } else {
+            retryBtn.style.display = "none";
+          }
+
+          if (options.showCancel !== false) {
+            cancelBtn.style.display = "inline-block";
+            cancelBtn.textContent = options.cancelText || "Cancel";
+          } else {
+            cancelBtn.style.display = "none";
+          }
+
+          modal.style.display = "flex";
+
+          const cleanup = () => {
+            modal.style.display = "none";
+            retryBtn.onclick = null;
+            proceedBtn.onclick = null;
+            cancelBtn.onclick = null;
+          };
+
+          retryBtn.onclick = () => {
+            cleanup();
+            resolve("retry");
+          };
+
+          proceedBtn.onclick = () => {
+            cleanup();
+            resolve("proceed");
+          };
+
+          cancelBtn.onclick = () => {
+            cleanup();
+            resolve("cancel");
+          };
+
+          // Close on background click
+          modal.onclick = (e) => {
+            if (e.target === modal) {
+              cleanup();
+              resolve("cancel");
+            }
+          };
+        });
+      }
 
       // Converts a File object to a base64 string (without the data: prefix)
       function fileToBase64(file) {
@@ -970,19 +1138,133 @@
               console.error("Failed uploads:", errorMessages);
 
               if (successful.length > 0) {
-                const proceed = confirm(
-                  `⚠️ ${failed.length} files failed to upload:\n${failedFiles}\n\n` +
-                    `${successful.length} files uploaded successfully.\n\n` +
-                    `Would you like to proceed anyway, or retry the failed uploads?`
+                // Give user options: Proceed, Retry, or Cancel
+                const choice = await showCustomConfirm(
+                  "Upload Partially Failed",
+                  `⚠️ ${failed.length} files failed to upload:\n${failedFiles}\n\n${successful.length} files uploaded successfully.\n\nWhat would you like to do?`,
+                  {
+                    showRetry: true,
+                    showProceed: true,
+                    showCancel: false,
+                    retryText: "Retry Failed",
+                    proceedText: "Proceed Anyway",
+                  }
                 );
 
-                if (!proceed) {
-                  throw new Error(
-                    `Upload incomplete: ${failed.length} files failed`
+                if (choice === "retry") {
+                  // User chose to retry failed uploads
+                  console.log("🔄 Retrying failed uploads...");
+
+                  // Update loading text
+                  if (loadingText) {
+                    loadingText.textContent = `Retrying ${failed.length} failed uploads...`;
+                  }
+
+                  // Extract failed file objects for retry
+                  const failedFileObjects = failed
+                    .map((failedResult) => {
+                      return preGeneratedFiles.find(
+                        (fileObj) => fileObj.filename === failedResult.filename
+                      );
+                    })
+                    .filter(Boolean); // Remove any undefined entries
+
+                  if (failedFileObjects.length > 0) {
+                    // Retry failed uploads
+                    const retryResults = await uploadFilesInParallel(
+                      failedFileObjects,
+                      accessToken,
+                      folderName
+                    );
+
+                    const retrySuccessful = retryResults.filter(
+                      (r) => r.success
+                    );
+                    const retryFailed = retryResults.filter((r) => !r.success);
+
+                    console.log(
+                      `🔄 Retry completed: ${retrySuccessful.length} successful, ${retryFailed.length} still failed`
+                    );
+
+                    if (retryFailed.length > 0) {
+                      const stillFailedFiles = retryFailed
+                        .map((f) => f.filename)
+                        .join(", ");
+                      alert(
+                        `⚠️ ${retryFailed.length} files still failed after retry:\n${stillFailedFiles}\n\n` +
+                          `Total successful: ${
+                            successful.length + retrySuccessful.length
+                          }/${uploadResults.length}`
+                      );
+                    } else {
+                      alert(
+                        `✅ All failed uploads succeeded on retry!\nAll ${uploadResults.length} files uploaded successfully!`
+                      );
+                    }
+
+                    // Update totals
+                    const totalSuccessful =
+                      successful.length + retrySuccessful.length;
+                    const totalFailed = retryFailed.length;
+
+                    if (totalSuccessful > 0) {
+                      hasSubmitted = true;
+                      setNextButtonState(true);
+                    }
+                  }
+                } else if (choice === "proceed") {
+                  // User chose to proceed with partial success
+                  console.log(
+                    "User chose to proceed with partial upload success"
                   );
                 }
               } else {
-                throw new Error(`All uploads failed:\n${errorMessages}`);
+                // All uploads failed - offer retry option
+                const retryAll = await showCustomConfirm(
+                  "All Uploads Failed",
+                  `❌ All ${failed.length} uploads failed.\n\nWould you like to retry all uploads?`,
+                  {
+                    showRetry: true,
+                    showProceed: false,
+                    showCancel: true,
+                    retryText: "Retry All",
+                    cancelText: "Abort",
+                  }
+                );
+
+                if (retryAll === "retry") {
+                  console.log("🔄 Retrying all uploads...");
+
+                  if (loadingText) {
+                    loadingText.textContent = `Retrying all ${failed.length} uploads...`;
+                  }
+
+                  const retryResults = await uploadFilesInParallel(
+                    preGeneratedFiles,
+                    accessToken,
+                    folderName
+                  );
+
+                  const retrySuccessful = retryResults.filter((r) => r.success);
+                  const retryFailed = retryResults.filter((r) => !r.success);
+
+                  if (retrySuccessful.length > 0) {
+                    hasSubmitted = true;
+                    setNextButtonState(true);
+
+                    if (retryFailed.length > 0) {
+                      alert(
+                        `⚠️ Retry partially successful:\n${retrySuccessful.length} succeeded, ${retryFailed.length} still failed`
+                      );
+                    } else {
+                      alert(`✅ All uploads succeeded on retry!`);
+                    }
+                  } else {
+                    throw new Error(`All uploads failed again after retry`);
+                  }
+                } else {
+                  throw new Error(`All uploads failed:\n${errorMessages}`);
+                }
               }
             }
 
