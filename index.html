@@ -308,21 +308,21 @@
       }
 
       .confirm-btn.retry {
-        background: #2b8ded;
-        color: white;
-      }
-
-      .confirm-btn.retry:hover {
-        background: #1a7ad9;
-      }
-
-      .confirm-btn.proceed {
         background: #28a745;
         color: white;
       }
 
-      .confirm-btn.proceed:hover {
+      .confirm-btn.retry:hover {
         background: #218838;
+      }
+
+      .confirm-btn.proceed {
+        background: #2b8ded;
+        color: white;
+      }
+
+      .confirm-btn.proceed:hover {
+        background: #1a7ad9;
       }
 
       .confirm-btn.cancel {
@@ -1211,6 +1211,9 @@
                       hasSubmitted = true;
                       setNextButtonState(true);
                     }
+
+                    // Skip the final success message since we already showed retry results
+                    return;
                   }
                 } else if (choice === "proceed") {
                   // User chose to proceed with partial success
@@ -1259,6 +1262,9 @@
                     } else {
                       alert(`✅ All uploads succeeded on retry!`);
                     }
+
+                    // Skip the final success message since we already showed retry results
+                    return;
                   } else {
                     throw new Error(`All uploads failed again after retry`);
                   }
