@@ -529,53 +529,56 @@
         console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
       }
 
- // Upload with retry logic
-async function uploadWithRetry(
-  fileObj,
-  accessToken,
-  dropboxPath,
-  maxRetries = 3
-) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await uploadFileToDropbox(
-        fileObj.file,
+      // Upload with retry logic
+      async function uploadWithRetry(
+        fileObj,
         accessToken,
-        dropboxPath
-      );
-    } catch (error) {
-      console.warn(
-        `Upload attempt ${attempt} failed for ${fileObj.filename}:`,
-        error.message
-      );
+        dropboxPath,
+        maxRetries = 3
+      ) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            return await uploadFileToDropbox(
+              fileObj.file,
+              accessToken,
+              dropboxPath
+            );
+          } catch (error) {
+            console.warn(
+              `Upload attempt ${attempt} failed for ${fileObj.filename}:`,
+              error.message
+            );
 
-      if (attempt === maxRetries) {
-        throw new Error(
-          `Upload failed after ${maxRetries} attempts: ${error.message}`
-        );
-      }
+            if (attempt === maxRetries) {
+              throw new Error(
+                `Upload failed after ${maxRetries} attempts: ${error.message}`
+              );
+            }
 
-      // Exponential backoff: 1s, 2s, 4s... capped at 5s
-      let delay = Math.min(5000, 1000 * Math.pow(2, attempt - 1));
+            // Exponential backoff: 1s, 2s, 4s... capped at 5s
+            let delay = Math.min(5000, 1000 * Math.pow(2, attempt - 1));
 
-      // Smarter backoff for throttling/conflicts
-      if (error && (error.status === 429 || error.status === 409)) {
-        if (typeof error.retryAfter === "number" && !isNaN(error.retryAfter)) {
-          // honor server's Retry-After header (seconds) + 1s buffer
-          delay = Math.max(delay, (error.retryAfter + 1) * 1000);
-        } else {
-          // give extra room if no Retry-After header
-          delay = Math.max(delay, 3000);
+            // Smarter backoff for throttling/conflicts
+            if (error && (error.status === 429 || error.status === 409)) {
+              if (
+                typeof error.retryAfter === "number" &&
+                !isNaN(error.retryAfter)
+              ) {
+                // honor server's Retry-After header (seconds) + 1s buffer
+                delay = Math.max(delay, (error.retryAfter + 1) * 1000);
+              } else {
+                // give extra room if no Retry-After header
+                delay = Math.max(delay, 3000);
+              }
+            }
+
+            // Add random jitter (up to +25%) to avoid all retries colliding
+            delay = Math.round(delay * (1 + Math.random() * 0.25));
+
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
         }
       }
-
-      // Add random jitter (up to +25%) to avoid all retries colliding
-      delay = Math.round(delay * (1 + Math.random() * 0.25));
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-}
 
       // Parallel upload with concurrency control
       async function uploadFilesInParallel(
@@ -819,32 +822,26 @@ async function uploadWithRetry(
         return data.access_token;
       }
 
-// Unified sanitizers
-function sanitizeFolderName(name) {
-  return (name || "")
-    .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
-    .replace(/\s+/g, " ")                // collapse multiple spaces
-    .trim();
-}
+      // Unified sanitizers
+      function sanitizeFolderName(name) {
+        return (name || "")
+          .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
+          .replace(/\s+/g, " ") // collapse multiple spaces
+          .trim();
+      }
 
-function sanitizePath(path) {
-  return (path || "")
-    .replace(/\/+/g, "/")                 // collapse multiple slashes
-    .replace(/^\/+/, "")                  // remove leading slash
-    .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "")// same allow-list + slash for subfolders
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-
+      function sanitizePath(path) {
+        return (path || "")
+          .replace(/\/+/g, "/") // collapse multiple slashes
+          .replace(/^\/+/, "") // remove leading slash
+          .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "") // same allow-list + slash for subfolders
+          .replace(/\s+/g, " ")
+          .trim();
+      }
 
       async function uploadFileToDropbox(file, accessToken, dropboxPath) {
-	
-	// Sanitize the path to meet Dropbox requirements
-const sanitizedPath = sanitizePath(dropboxPath);
-
-
-
+        // Sanitize the path to meet Dropbox requirements
+        const sanitizedPath = sanitizePath(dropboxPath);
 
         const url = "https://content.dropboxapi.com/2/files/upload";
         const args = {
@@ -862,19 +859,18 @@ const sanitizedPath = sanitizePath(dropboxPath);
           },
           body: file,
         });
-    	if (!res.ok) {
-		const bodyText = await res.text().catch(() => '');
-		const err = new Error(bodyText || `HTTP ${res.status}`);
-		err.status = res.status;
-		const ra = res.headers.get('Retry-After');
-		if (ra) {
-			const n = parseInt(ra, 10);
-    		if (!isNaN(n)) err.retryAfter = n; // seconds
- 		}
-  		throw err;
-	}
-		return await res.json();
-
+        if (!res.ok) {
+          const bodyText = await res.text().catch(() => "");
+          const err = new Error(bodyText || `HTTP ${res.status}`);
+          err.status = res.status;
+          const ra = res.headers.get("Retry-After");
+          if (ra) {
+            const n = parseInt(ra, 10);
+            if (!isNaN(n)) err.retryAfter = n; // seconds
+          }
+          throw err;
+        }
+        return await res.json();
       }
 
       const NETLIFY_FUNCTION_URL =
@@ -887,7 +883,12 @@ const sanitizedPath = sanitizePath(dropboxPath);
             const data = await response.json();
             console.log("🟢 [Proxy result ) = ", "success", data);
             address = data.address;
-            addressNumber = data.unitNumber;
+
+            // Fix #1: Always use the current submission's unit number, even if empty
+            // This prevents using the previous submission's unit number
+            addressNumber = data.unitNumber || "";
+
+            console.log(`📍 Address: "${address}", Unit: "${addressNumber}"`);
             return data; // <-- return the fetched data
           } else {
             console.log("🟢 [Proxy result ) = ", "error", response);
@@ -1140,7 +1141,6 @@ const sanitizedPath = sanitizePath(dropboxPath);
             }
 
             // Pre-generate File objects to preserve order and filenames
-            console.log("🔄 Pre-generating File objects...");
             preGenerateFileObjects();
 
             if (preGeneratedFiles.length === 0) {
@@ -1148,22 +1148,21 @@ const sanitizedPath = sanitizePath(dropboxPath);
             }
 
             // Get Dropbox access token
-            console.log("🔄 Getting Dropbox access token...");
             const accessToken = await getDropboxAccessToken();
 
-// When building the folder name
-const unitPart = addressNumber && addressNumber.trim() !== "" && addressNumber.trim() !== "1"
-  ? ` ${addressNumber.trim()}`
-  : "";
-const folderName = sanitizeFolderName(`${(address || "").trim()}${unitPart}`);
+            // Fix #1: Fetch latest address data right before upload to ensure current unit number
+            await fetchLatestAddress();
 
+            // When building the folder name
+            const unitPart =
+              addressNumber &&
+              addressNumber.trim() !== "" &&
+              addressNumber.trim() !== "1"
+                ? ` ${addressNumber.trim()}`
+                : "";
 
-
-
-
-            console.log(
-              `🔄 Starting parallel upload of ${preGeneratedFiles.length} files to folder: ${folderName}`
-            );
+            const rawFolderName = `${(address || "").trim()}${unitPart}`;
+            const folderName = sanitizeFolderName(rawFolderName);
 
             // Upload files in parallel with concurrency control
             const uploadResults = await uploadFilesInParallel(
