@@ -333,13 +333,20 @@
       .confirm-btn.cancel:hover {
         background: #5a6268;
       }
+
+      .center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
     </style>
   </head>
   <body>
     <div id="main">
       <!-- Add loading spinner -->
       <div id="loadingSpinner" class="loading-spinner">
-        <div>
+        <div class="center">
           <div class="spinner"></div>
           <div class="loading-text">Uploading files...</div>
         </div>
@@ -815,7 +822,7 @@
       }
 
       async function getDropboxAccessToken() {
-        const res = await fetch("/.netlify/functions/getdropboxtoken");
+        const res = await fetch("/.netlify/functions/getDropboxToken");
         if (!res.ok) throw new Error("Failed to get Dropbox token");
         const data = await res.json();
         if (!data.access_token) throw new Error("No access token received");
