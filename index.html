@@ -422,6 +422,16 @@
       let maxConcurrency = 4; // Limit concurrent uploads
       let imagePreview;
 
+      // Function to reset address data (useful for testing)
+      function resetAddressData() {
+        console.log("🔄 Resetting address data...");
+        address = "";
+        addressNumber = "";
+        console.log(
+          `📍 Reset complete: Address="${address}", Unit="${addressNumber}"`
+        );
+      }
+
       // Custom confirmation dialog
       function showCustomConfirm(title, message, options = {}) {
         return new Promise((resolve) => {
@@ -885,17 +895,40 @@
 
       async function fetchLatestAddress() {
         try {
-          const response = await fetch(NETLIFY_FUNCTION_URL);
+          // Add cache-busting timestamp to force fresh data
+          const timestamp = new Date().getTime();
+          const response = await fetch(
+            `${NETLIFY_FUNCTION_URL}?t=${timestamp}`,
+            {
+              cache: "no-cache",
+              headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+              },
+            }
+          );
+
           if (response.ok) {
             const data = await response.json();
             console.log("🟢 [Proxy result ) = ", "success", data);
-            address = data.address;
+
+            // Store previous values for comparison
+            const previousAddress = address;
+            const previousUnit = addressNumber;
+
+            address = data.address || "";
 
             // Fix #1: Always use the current submission's unit number, even if empty
             // This prevents using the previous submission's unit number
             addressNumber = data.unitNumber || "";
 
-            console.log(`📍 Address: "${address}", Unit: "${addressNumber}"`);
+            console.log(
+              `📍 Previous: "${previousAddress}" + "${previousUnit}"`
+            );
+            console.log(`📍 Current: "${address}" + "${addressNumber}"`);
+            console.log(`📍 Unit changed: ${previousUnit !== addressNumber}`);
+
             return data; // <-- return the fetched data
           } else {
             console.log("🟢 [Proxy result ) = ", "error", response);
@@ -907,6 +940,9 @@
         }
       }
       JFCustomWidget.subscribe("ready", function () {
+        // Reset address data to ensure fresh start
+        resetAddressData();
+
         // Initial address fetch
         fetchLatestAddress();
       });
@@ -1157,7 +1193,9 @@
             // Get Dropbox access token
             const accessToken = await getDropboxAccessToken();
 
-            // Fix #1: Fetch latest address data right before upload to ensure current unit number
+            // Fix #1: Reset and fetch latest address data right before upload to ensure current unit number
+            console.log("🔄 Resetting and fetching latest address data...");
+            resetAddressData(); // Clear any stale data first
             await fetchLatestAddress();
 
             // When building the folder name
