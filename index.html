@@ -1185,7 +1185,8 @@
                 console.log(
                     `✅ Upload completed: ${successful.length} successful, ${failed.length} failed`
                 );
-
+                localStorage.removeItem('addressNumber')
+                localStorage.removeItem('unitNumber')
                 if (failed.length > 0) {
                     const failedFiles = failed.map((f) => f.filename).join(", ");
                     const errorMessages = failed
