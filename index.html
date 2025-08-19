@@ -1,729 +1,708 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <script
-      src="https://js.jotform.com/JotFormCustomWidget.min.js"
-      crossorigin="anonymous"
+            src="https://js.jotform.com/JotFormCustomWidget.min.js"
+            crossorigin="anonymous"
     ></script>
     <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"
-      crossorigin="anonymous"
+            src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"
+            crossorigin="anonymous"
     ></script>
     <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
-      crossorigin="anonymous"
+            src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+            crossorigin="anonymous"
     ></script>
     <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        font-family: Arial, sans-serif;
-      }
-
-      #main {
-        width: 100%;
-        min-height: 300px;
-        padding: 20px;
-        box-sizing: border-box;
-        background: #fff;
-      }
-
-      #dropZone {
-        border: 2px dashed #ccc;
-        padding: 30px;
-        margin-bottom: 20px;
-        cursor: pointer;
-        text-align: center;
-        background: #fafafa;
-        transition: background 0.3s ease;
-      }
-
-      #dropZone:hover {
-        background: #f0f0f0;
-      }
-
-      .image-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin: 20px 0;
-      }
-
-      .image-item {
-        position: relative;
-        width: var(--item-size, 120px);
-        height: var(--item-size, 120px);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        overflow: visible;
-        padding: 4px;
-        padding-bottom: 15px;
-        justify-content: center;
-        background: #fff;
-        border: 1px solid #eee;
-        border-radius: 4px;
-      }
-
-      .image-item img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        cursor: pointer;
-        display: block;
-        border: none;
-      }
-
-      .image-number {
-        margin-top: 4px;
-        font-size: 14px;
-        color: #555;
-      }
-
-      .delete-btn {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        background: #ff4444;
-        border: none;
-        color: white;
-        width: 20px;
-        height: 20px;
-        font-size: 14px;
-        cursor: pointer;
-        z-index: 2;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-      }
-
-      .button-group {
-        margin-top: 20px;
-        text-align: center;
-      }
-
-      .primary-btn {
-        padding: 10px 20px;
-        font-size: 14px;
-        border: none;
-        cursor: pointer;
-        background: #2b8ded;
-        color: white;
-        border-radius: 4px;
-        transition: background 0.3s ease;
-      }
-
-      .primary-btn:hover {
-        background: #1a7ad9;
-      }
-
-      .primary-btn:disabled {
-        background: #aaa;
-        cursor: not-allowed;
-      }
-
-      .primary-btn,
-      .gray-btn {
-        padding: 8px 16px;
-        font-size: 14px;
-        border: none;
-        cursor: pointer;
-      }
-
-      .gray-btn {
-        background: #ccc;
-        color: #333;
-      }
-
-      #imagePreviewModal {
-        display: none;
-        position: fixed;
-        z-index: 9999;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        justify-content: center;
-        align-items: center;
-      }
-
-      #imagePreviewModal img {
-        max-width: 90%;
-        max-height: 90%;
-        border-radius: 0px;
-      }
-
-      #imagePreviewModal .close {
-        position: absolute;
-        top: 20px;
-        right: 30px;
-        font-size: 40px;
-        color: white;
-        cursor: pointer;
-      }
-
-      #imagePreviewModal .arrow {
-        position: absolute;
-        top: 50%;
-        font-size: 48px;
-        color: white;
-        cursor: pointer;
-        user-select: none;
-        padding: 10px;
-        z-index: 9999;
-        transform: translateY(-50%);
-      }
-
-      #imagePreviewModal .arrow.left {
-        left: 30px;
-      }
-
-      #imagePreviewModal .arrow.right {
-        right: 30px;
-      }
-
-      .image-number.over-limit {
-        color: #ff4444;
-        font-weight: bold;
-      }
-
-      .size-control {
-        margin: 20px 0;
-        text-align: center;
-      }
-
-      .size-control label {
-        margin-right: 10px;
-      }
-
-      input[type="range"] {
-        width: 200px;
-        margin: 0 10px;
-      }
-
-      #sliderValue {
-        display: inline-block;
-        min-width: 60px;
-        text-align: left;
-      }
-
-      /* Loading Spinner Styles */
-      .loading-spinner {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #2b8ded;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
         }
-        100% {
-          transform: rotate(360deg);
+
+        #main {
+            width: 100%;
+            min-height: 300px;
+            padding: 20px;
+            box-sizing: border-box;
+            background: #fff;
         }
-      }
 
-      .loading-text {
-        color: white;
-        margin-top: 10px;
-        font-size: 16px;
-      }
+        #dropZone {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            text-align: center;
+            background: #fafafa;
+            transition: background 0.3s ease;
+        }
 
-      /* Custom Confirmation Dialog Styles */
-      .custom-confirm {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        justify-content: center;
-        align-items: center;
-      }
+        #dropZone:hover {
+            background: #f0f0f0;
+        }
 
-      .confirm-dialog {
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        max-width: 400px;
-        width: 90%;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        text-align: center;
-      }
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px 0;
+        }
 
-      .confirm-title {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 16px;
-        color: #333;
-      }
+        .image-item {
+            position: relative;
+            width: var(--item-size, 120px);
+            height: var(--item-size, 120px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: visible;
+            padding: 4px;
+            padding-bottom: 15px;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
 
-      .confirm-message {
-        font-size: 14px;
-        line-height: 1.4;
-        margin-bottom: 24px;
-        color: #666;
-        white-space: pre-line;
-      }
+        .image-item img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: pointer;
+            display: block;
+            border: none;
+        }
 
-      .confirm-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-      }
+        .image-number {
+            margin-top: 4px;
+            font-size: 14px;
+            color: #555;
+        }
 
-      .confirm-btn {
-        padding: 10px 20px;
-        font-size: 14px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        min-width: 80px;
-        transition: background 0.3s ease;
-      }
+        .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ff4444;
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
 
-      .confirm-btn.retry {
-        background: #28a745;
-        color: white;
-      }
+        .button-group {
+            margin-top: 20px;
+            text-align: center;
+        }
 
-      .confirm-btn.retry:hover {
-        background: #218838;
-      }
+        .primary-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            background: #2b8ded;
+            color: white;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
 
-      .confirm-btn.proceed {
-        background: #2b8ded;
-        color: white;
-      }
+        .primary-btn:hover {
+            background: #1a7ad9;
+        }
 
-      .confirm-btn.proceed:hover {
-        background: #1a7ad9;
-      }
+        .primary-btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
 
-      .confirm-btn.cancel {
-        background: #6c757d;
-        color: white;
-      }
+        .primary-btn,
+        .gray-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+        }
 
-      .confirm-btn.cancel:hover {
-        background: #5a6268;
-      }
+        .gray-btn {
+            background: #ccc;
+            color: #333;
+        }
 
-      .center {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
+        #imagePreviewModal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #imagePreviewModal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 0px;
+        }
+
+        #imagePreviewModal .close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #imagePreviewModal .arrow {
+            position: absolute;
+            top: 50%;
+            font-size: 48px;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px;
+            z-index: 9999;
+            transform: translateY(-50%);
+        }
+
+        #imagePreviewModal .arrow.left {
+            left: 30px;
+        }
+
+        #imagePreviewModal .arrow.right {
+            right: 30px;
+        }
+
+        .image-number.over-limit {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .size-control {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .size-control label {
+            margin-right: 10px;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            margin: 0 10px;
+        }
+
+        #sliderValue {
+            display: inline-block;
+            min-width: 60px;
+            text-align: left;
+        }
+
+        /* Loading Spinner Styles */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2b8ded;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        /* Custom Confirmation Dialog Styles */
+        .custom-confirm {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirm-dialog {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .confirm-message {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 24px;
+            color: #666;
+            white-space: pre-line;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            min-width: 80px;
+            transition: background 0.3s ease;
+        }
+
+        .confirm-btn.retry {
+            background: #28a745;
+            color: white;
+        }
+
+        .confirm-btn.retry:hover {
+            background: #218838;
+        }
+
+        .confirm-btn.proceed {
+            background: #2b8ded;
+            color: white;
+        }
+
+        .confirm-btn.proceed:hover {
+            background: #1a7ad9;
+        }
+
+        .confirm-btn.cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .confirm-btn.cancel:hover {
+            background: #5a6268;
+        }
+
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
-  </head>
-  <body>
-    <div id="main">
-      <!-- Add loading spinner -->
-      <div id="loadingSpinner" class="loading-spinner">
+</head>
+<body>
+<div id="main">
+    <!-- Add loading spinner -->
+    <div id="loadingSpinner" class="loading-spinner">
         <div class="center">
-          <div class="spinner"></div>
-          <div class="loading-text">Uploading files...</div>
+            <div class="spinner"></div>
+            <div class="loading-text">Uploading files...</div>
         </div>
-      </div>
-      <div id="dropZone">
+    </div>
+    <div id="dropZone">
         <p>Drag & drop photos or .zip file here or click to select a folder</p>
-      </div>
-      <input
-        type="file"
-        id="fileInput"
-        multiple
-        webkitdirectory
-        directory
-        accept=".jpg,.jpeg,.png,.zip"
-        style="display: none"
-      />
+    </div>
+    <input
+            type="file"
+            id="fileInput"
+            multiple
+            webkitdirectory
+            directory
+            accept=".jpg,.jpeg,.png,.zip"
+            style="display: none"
+    />
 
-      <div class="size-control">
+    <div class="size-control">
         <label for="sizeSlider">Preview Size:</label>
         <input type="range" id="sizeSlider" min="60" max="240" value="120" />
         <span id="sliderValue">120px</span>
-      </div>
+    </div>
 
-      <div id="imagePreview" class="image-grid"></div>
+    <div id="imagePreview" class="image-grid"></div>
 
-      <div class="button-group">
+    <div class="button-group">
         <button id="uploadBtn" class="primary-btn">
-          Submit Your High-Res Photos
+            Submit Your High-Res Photos
         </button>
         <div>
-          <button id="downloadBtn" class="gray-btn">
-            Download Your Re-Ordered Photos
-          </button>
+            <button id="downloadBtn" class="gray-btn">
+                Download Your Re-Ordered Photos
+            </button>
         </div>
-      </div>
+    </div>
 
-      <div id="imagePreviewModal">
+    <div id="imagePreviewModal">
         <span class="close">&times;</span>
         <div class="arrow left">&#10094;</div>
         <img id="modalImage" src="" />
         <div class="arrow right">&#10095;</div>
-      </div>
-
-      <!-- Custom Confirmation Dialog -->
-      <div id="customConfirm" class="custom-confirm">
-        <div class="confirm-dialog">
-          <div id="confirmTitle" class="confirm-title"></div>
-          <div id="confirmMessage" class="confirm-message"></div>
-          <div class="confirm-buttons">
-            <button id="confirmRetry" class="confirm-btn retry">Retry</button>
-            <button id="confirmProceed" class="confirm-btn proceed">
-              Proceed
-            </button>
-            <button id="confirmCancel" class="confirm-btn cancel">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <script type="text/javascript">
-      let filesList = [];
-      let preGeneratedFiles = []; // Store pre-generated File objects
-      let currentIndex = -1;
-      let maxFiles = 50;
-      let allowedTypes = ["jpg", "jpeg", "png", "zip"];
-      let hasImages = false;
-      let address = "";
-      let addressNumber = "";
-      let isUploading = false;
-      let hasSubmitted = false; // New flag to track if files have been uploaded
-      let maxConcurrency = 4; // Limit concurrent uploads
-      let imagePreview;
+    <!-- Custom Confirmation Dialog -->
+    <div id="customConfirm" class="custom-confirm">
+        <div class="confirm-dialog">
+            <div id="confirmTitle" class="confirm-title"></div>
+            <div id="confirmMessage" class="confirm-message"></div>
+            <div class="confirm-buttons">
+                <button id="confirmRetry" class="confirm-btn retry">Retry</button>
+                <button id="confirmProceed" class="confirm-btn proceed">
+                    Proceed
+                </button>
+                <button id="confirmCancel" class="confirm-btn cancel">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-      // Function to reset address data (useful for testing)
-      function resetAddressData() {
-        console.log("🔄 Resetting address data...");
-        address = "";
-        addressNumber = "";
-        console.log(
-          `📍 Reset complete: Address="${address}", Unit="${addressNumber}"`
-        );
-      }
+<script type="text/javascript">
+    let filesList = [];
+    let preGeneratedFiles = []; // Store pre-generated File objects
+    let currentIndex = -1;
+    let maxFiles = 50;
+    let allowedTypes = ["jpg", "jpeg", "png", "zip"];
+    let hasImages = false;
+    let address = "";
+    let addressNumber = "";
+    let isUploading = false;
+    let hasSubmitted = false; // New flag to track if files have been uploaded
+    let maxConcurrency = 4; // Limit concurrent uploads
+    let imagePreview;
 
-      // Custom confirmation dialog
-      function showCustomConfirm(title, message, options = {}) {
+    // Custom confirmation dialog
+    function showCustomConfirm(title, message, options = {}) {
         return new Promise((resolve) => {
-          const modal = document.getElementById("customConfirm");
-          const titleEl = document.getElementById("confirmTitle");
-          const messageEl = document.getElementById("confirmMessage");
-          const retryBtn = document.getElementById("confirmRetry");
-          const proceedBtn = document.getElementById("confirmProceed");
-          const cancelBtn = document.getElementById("confirmCancel");
+            const modal = document.getElementById("customConfirm");
+            const titleEl = document.getElementById("confirmTitle");
+            const messageEl = document.getElementById("confirmMessage");
+            const retryBtn = document.getElementById("confirmRetry");
+            const proceedBtn = document.getElementById("confirmProceed");
+            const cancelBtn = document.getElementById("confirmCancel");
 
-          titleEl.textContent = title;
-          messageEl.textContent = message;
+            titleEl.textContent = title;
+            messageEl.textContent = message;
 
-          // Configure buttons based on options
-          if (options.showProceed !== false) {
-            proceedBtn.style.display = "inline-block";
-            proceedBtn.textContent = options.proceedText || "Proceed";
-          } else {
-            proceedBtn.style.display = "none";
-          }
-
-          if (options.showRetry !== false) {
-            retryBtn.style.display = "inline-block";
-            retryBtn.textContent = options.retryText || "Retry";
-          } else {
-            retryBtn.style.display = "none";
-          }
-
-          if (options.showCancel !== false) {
-            cancelBtn.style.display = "inline-block";
-            cancelBtn.textContent = options.cancelText || "Cancel";
-          } else {
-            cancelBtn.style.display = "none";
-          }
-
-          modal.style.display = "flex";
-
-          const cleanup = () => {
-            modal.style.display = "none";
-            retryBtn.onclick = null;
-            proceedBtn.onclick = null;
-            cancelBtn.onclick = null;
-          };
-
-          retryBtn.onclick = () => {
-            cleanup();
-            resolve("retry");
-          };
-
-          proceedBtn.onclick = () => {
-            cleanup();
-            resolve("proceed");
-          };
-
-          cancelBtn.onclick = () => {
-            cleanup();
-            resolve("cancel");
-          };
-
-          // Close on background click
-          modal.onclick = (e) => {
-            if (e.target === modal) {
-              cleanup();
-              resolve("cancel");
+            // Configure buttons based on options
+            if (options.showProceed !== false) {
+                proceedBtn.style.display = "inline-block";
+                proceedBtn.textContent = options.proceedText || "Proceed";
+            } else {
+                proceedBtn.style.display = "none";
             }
-          };
-        });
-      }
 
-      // Converts a File object to a base64 string (without the data: prefix)
-      function fileToBase64(file) {
+            if (options.showRetry !== false) {
+                retryBtn.style.display = "inline-block";
+                retryBtn.textContent = options.retryText || "Retry";
+            } else {
+                retryBtn.style.display = "none";
+            }
+
+            if (options.showCancel !== false) {
+                cancelBtn.style.display = "inline-block";
+                cancelBtn.textContent = options.cancelText || "Cancel";
+            } else {
+                cancelBtn.style.display = "none";
+            }
+
+            modal.style.display = "flex";
+
+            const cleanup = () => {
+                modal.style.display = "none";
+                retryBtn.onclick = null;
+                proceedBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            retryBtn.onclick = () => {
+                cleanup();
+                resolve("retry");
+            };
+
+            proceedBtn.onclick = () => {
+                cleanup();
+                resolve("proceed");
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve("cancel");
+            };
+
+            // Close on background click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    cleanup();
+                    resolve("cancel");
+                }
+            };
+        });
+    }
+
+    // Converts a File object to a base64 string (without the data: prefix)
+    function fileToBase64(file) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            // Remove the data:*/*;base64, prefix
-            const base64 = reader.result.split(",")[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onload = () => {
+                // Remove the data:*/*;base64, prefix
+                const base64 = reader.result.split(",")[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
         });
-      }
+    }
 
-      // Convert base64 data URL to File object
-      function dataURLtoFile(dataurl, filename) {
+    // Convert base64 data URL to File object
+    function dataURLtoFile(dataurl, filename) {
         const arr = dataurl.split(",");
         const mime = arr[0].match(/:(.*?);/)[1];
         const bstr = atob(arr[arr.length - 1]);
         const n = bstr.length;
         const u8arr = new Uint8Array(n);
         for (let i = 0; i < n; i++) {
-          u8arr[i] = bstr.charCodeAt(i);
+            u8arr[i] = bstr.charCodeAt(i);
         }
         return new File([u8arr], filename, { type: mime });
-      }
+    }
 
-      // Pre-generate File objects from current image order
-      function preGenerateFileObjects() {
+    // Pre-generate File objects from current image order
+    function preGenerateFileObjects() {
         preGeneratedFiles = [];
         const images = imagePreview.querySelectorAll(".image-item img");
 
         images.forEach((img, index) => {
-          const filename = `${index + 1}.jpg`;
-          const file = dataURLtoFile(img.src, filename);
-
-          console.log(`📷 Pre-generating file ${index + 1}:`);
-          console.log(`   Filename: "${filename}"`);
-          console.log(`   File size: ${file.size} bytes`);
-          console.log(`   File type: "${file.type}"`);
-
-          preGeneratedFiles.push({
-            file: file,
-            originalIndex: index,
-            filename: filename,
-          });
+            const filename = `${index + 1}.jpg`;
+            const file = dataURLtoFile(img.src, filename);
+            preGeneratedFiles.push({
+                file: file,
+                originalIndex: index,
+                filename: filename,
+            });
         });
 
-        console.log(
-          `✅ Pre-generated ${preGeneratedFiles.length} file objects`
-        );
-      }
+        console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
+    }
 
-      // Upload with retry logic
-      async function uploadWithRetry(
+    // Upload with retry logic
+    async function uploadWithRetry(
         fileObj,
         accessToken,
         dropboxPath,
         maxRetries = 3
-      ) {
+    ) {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            return await uploadFileToDropbox(
-              fileObj.file,
-              accessToken,
-              dropboxPath
-            );
-          } catch (error) {
-            console.warn(
-              `Upload attempt ${attempt} failed for ${fileObj.filename}:`,
-              error.message
-            );
+            try {
+                return await uploadFileToDropbox(
+                    fileObj.file,
+                    accessToken,
+                    dropboxPath
+                );
+            } catch (error) {
+                console.warn(
+                    `Upload attempt ${attempt} failed for ${fileObj.filename}:`,
+                    error.message
+                );
 
-            if (attempt === maxRetries) {
-              throw new Error(
-                `Upload failed after ${maxRetries} attempts: ${error.message}`
-              );
+                if (attempt === maxRetries) {
+                    throw new Error(
+                        `Upload failed after ${maxRetries} attempts: ${error.message}`
+                    );
+                }
+
+                // Exponential backoff: 1s, 2s, 4s... capped at 5s
+                let delay = Math.min(5000, 1000 * Math.pow(2, attempt - 1));
+
+                // Smarter backoff for throttling/conflicts
+                if (error && (error.status === 429 || error.status === 409)) {
+                    if (
+                        typeof error.retryAfter === "number" &&
+                        !isNaN(error.retryAfter)
+                    ) {
+                        // honor server's Retry-After header (seconds) + 1s buffer
+                        delay = Math.max(delay, (error.retryAfter + 1) * 1000);
+                    } else {
+                        // give extra room if no Retry-After header
+                        delay = Math.max(delay, 3000);
+                    }
+                }
+
+                // Add random jitter (up to +25%) to avoid all retries colliding
+                delay = Math.round(delay * (1 + Math.random() * 0.25));
+
+                await new Promise((resolve) => setTimeout(resolve, delay));
             }
-
-            // Exponential backoff: 1s, 2s, 4s... capped at 5s
-            let delay = Math.min(5000, 1000 * Math.pow(2, attempt - 1));
-
-            // Smarter backoff for throttling/conflicts
-            if (error && (error.status === 429 || error.status === 409)) {
-              if (
-                typeof error.retryAfter === "number" &&
-                !isNaN(error.retryAfter)
-              ) {
-                // honor server's Retry-After header (seconds) + 1s buffer
-                delay = Math.max(delay, (error.retryAfter + 1) * 1000);
-              } else {
-                // give extra room if no Retry-After header
-                delay = Math.max(delay, 3000);
-              }
-            }
-
-            // Add random jitter (up to +25%) to avoid all retries colliding
-            delay = Math.round(delay * (1 + Math.random() * 0.25));
-
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
         }
-      }
+    }
 
-      // Parallel upload with concurrency control
-      async function uploadFilesInParallel(
+    // Parallel upload with concurrency control
+    async function uploadFilesInParallel(
         fileObjects,
         accessToken,
         folderName
-      ) {
+    ) {
         const results = [];
         const executing = [];
         let completed = 0;
 
         for (const fileObj of fileObjects) {
-          const dropboxPath = `Listings/${folderName}/${fileObj.filename}`;
+            const dropboxPath = `Listings/${folderName}/${fileObj.filename}`;
 
-          console.log(`🔄 Preparing upload for: ${fileObj.filename}`);
-          console.log(`   Full Dropbox path: "${dropboxPath}"`);
+            const uploadPromise = uploadWithRetry(
+                fileObj,
+                accessToken,
+                dropboxPath
+            )
+                .then((result) => {
+                    completed++;
+                    console.log(
+                        `✅ Uploaded ${completed}/${fileObjects.length}: ${fileObj.filename}`
+                    );
 
-          const uploadPromise = uploadWithRetry(
-            fileObj,
-            accessToken,
-            dropboxPath
-          )
-            .then((result) => {
-              completed++;
-              console.log(
-                `✅ Uploaded ${completed}/${fileObjects.length}: ${fileObj.filename}`
-              );
+                    // Update loading text
+                    const loadingText = document.querySelector(".loading-text");
+                    if (loadingText) {
+                        loadingText.textContent = `Uploading files... ${completed}/${fileObjects.length}`;
+                    }
 
-              // Update loading text
-              const loadingText = document.querySelector(".loading-text");
-              if (loadingText) {
-                loadingText.textContent = `Uploading files... ${completed}/${fileObjects.length}`;
-              }
+                    return { success: true, filename: fileObj.filename, result };
+                })
+                .catch((error) => {
+                    console.error(
+                        `❌ Failed to upload ${fileObj.filename}:`,
+                        error.message
+                    );
+                    return {
+                        success: false,
+                        filename: fileObj.filename,
+                        error: error.message,
+                    };
+                })
+                .finally(() => {
+                    // Remove from executing array
+                    const index = executing.indexOf(uploadPromise);
+                    if (index > -1) executing.splice(index, 1);
+                });
 
-              return { success: true, filename: fileObj.filename, result };
-            })
-            .catch((error) => {
-              console.error(
-                `❌ Failed to upload ${fileObj.filename}:`,
-                error.message
-              );
-              return {
-                success: false,
-                filename: fileObj.filename,
-                error: error.message,
-              };
-            })
-            .finally(() => {
-              // Remove from executing array
-              const index = executing.indexOf(uploadPromise);
-              if (index > -1) executing.splice(index, 1);
-            });
+            results.push(uploadPromise);
+            executing.push(uploadPromise);
 
-          results.push(uploadPromise);
-          executing.push(uploadPromise);
-
-          // Wait if we've reached max concurrency
-          if (executing.length >= maxConcurrency) {
-            await Promise.race(executing);
-          }
+            // Wait if we've reached max concurrency
+            if (executing.length >= maxConcurrency) {
+                await Promise.race(executing);
+            }
         }
 
         // Wait for all uploads to complete
         return Promise.all(results);
-      }
+    }
 
-      function calculateRequiredHeight() {
+    function calculateRequiredHeight() {
         const mainElement = document.getElementById("main");
         const contentHeight = mainElement.scrollHeight;
         return Math.max(contentHeight + 20, 300);
-      }
+    }
 
-      function updateIframeHeight() {
+    function updateIframeHeight() {
         if (hasImages) {
-          const height = calculateRequiredHeight();
-          JFCustomWidget.requestFrameResize({
-            height: height,
-          });
+            const height = calculateRequiredHeight();
+            JFCustomWidget.requestFrameResize({
+                height: height,
+            });
         }
-      }
+    }
 
-      function setNextButtonState(enabled) {
+    function setNextButtonState(enabled) {
         if (typeof JFCustomWidget !== "undefined") {
-          console.log("🔧 Setting Next button state to:", enabled);
-          if (enabled) {
-            JFCustomWidget.sendSubmit({
-              valid: true,
-              value: JSON.stringify({
-                files: filesList.map((file) => ({
-                  name: file.name,
-                  type: file.type,
-                  size: file.size,
-                })),
-                address,
-                addressNumber,
-              }),
-            });
-          } else {
-            // Explicitly disable the Next button
-            JFCustomWidget.sendSubmit({
-              valid: false,
-              value: "",
-            });
-          }
+            console.log("🔧 Setting Next button state to:", enabled);
+            if (enabled) {
+                JFCustomWidget.sendSubmit({
+                    valid: true,
+                    value: JSON.stringify({
+                        files: filesList.map((file) => ({
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                        })),
+                        address,
+                        addressNumber,
+                    }),
+                });
+            } else {
+                // Explicitly disable the Next button
+                JFCustomWidget.sendSubmit({
+                    valid: false,
+                    value: "",
+                });
+            }
         } else {
-          console.log("⚠️ JFCustomWidget not available");
+            console.log("⚠️ JFCustomWidget not available");
         }
-      }
+    }
 
-      // File handling functions
-      function fileToDataUrl(file) {
+    // File handling functions
+    function fileToDataUrl(file) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = (e) => reject(new Error("Error reading file"));
-          reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error("Error reading file"));
+            reader.readAsDataURL(file);
         });
-      }
+    }
 
-      function addImageToGrid(dataUrl, fileRef = null) {
+    function addImageToGrid(dataUrl, fileRef = null) {
         hasImages = true;
         const imageItem = document.createElement("div");
         imageItem.className = "image-item";
@@ -732,15 +711,15 @@
         img.src = dataUrl;
 
         img.onload = () => {
-          const ratio = img.naturalWidth / img.naturalHeight;
-          if (ratio > 1) {
-            img.style.width = "100%";
-            img.style.height = "auto";
-          } else {
-            img.style.height = "100%";
-            img.style.width = "auto";
-          }
-          updateIframeHeight();
+            const ratio = img.naturalWidth / img.naturalHeight;
+            if (ratio > 1) {
+                img.style.width = "100%";
+                img.style.height = "auto";
+            } else {
+                img.style.height = "100%";
+                img.style.width = "auto";
+            }
+            updateIframeHeight();
         };
 
         const number = document.createElement("div");
@@ -750,21 +729,21 @@
         deleteBtn.className = "delete-btn";
         deleteBtn.innerText = "×";
         deleteBtn.onclick = (ev) => {
-          ev.stopPropagation();
-          imagePreview.removeChild(imageItem);
-          if (fileRef) {
-            filesList = filesList.filter((f) => f !== fileRef);
-          }
-          // Check if we still have images
-          hasImages = imagePreview.querySelectorAll(".image-item").length > 0;
-          updateImageNumbers();
-          updateIframeHeight();
+            ev.stopPropagation();
+            imagePreview.removeChild(imageItem);
+            if (fileRef) {
+                filesList = filesList.filter((f) => f !== fileRef);
+            }
+            // Check if we still have images
+            hasImages = imagePreview.querySelectorAll(".image-item").length > 0;
+            updateImageNumbers();
+            updateIframeHeight();
 
-          // Clear pre-generated files when images are modified
-          preGeneratedFiles = [];
+            // Clear pre-generated files when images are modified
+            preGeneratedFiles = [];
 
-          // Reset Next button state when files are modified
-          setNextButtonState(false);
+            // Reset Next button state when files are modified
+            setNextButtonState(false);
         };
 
         imageItem.appendChild(img);
@@ -777,250 +756,180 @@
 
         // Reset Next button state when files are modified
         setNextButtonState(false);
-      }
+    }
 
-      async function handleFiles(fileList) {
+    async function handleFiles(fileList) {
         let allFiles = [];
         const fileArray = Array.from(fileList);
 
         for (let file of fileArray) {
-          if (file.name.endsWith(".zip")) {
-            await handleZip(file);
-          } else if (file.type.startsWith("image/")) {
-            allFiles.push(file);
-          }
+            if (file.name.endsWith(".zip")) {
+                await handleZip(file);
+            } else if (file.type.startsWith("image/")) {
+                allFiles.push(file);
+            }
         }
 
         allFiles.sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { numeric: true })
+            a.name.localeCompare(b.name, undefined, { numeric: true })
         );
 
         for (let file of allFiles) {
-          try {
-            const dataUrl = await fileToDataUrl(file);
-            addImageToGrid(dataUrl, file);
-            filesList.push(file);
-          } catch (err) {
-            console.error(`Error processing file ${file.name}:`, err);
-          }
+            try {
+                const dataUrl = await fileToDataUrl(file);
+                addImageToGrid(dataUrl, file);
+                filesList.push(file);
+            } catch (err) {
+                console.error(`Error processing file ${file.name}:`, err);
+            }
         }
 
         updateIframeHeight();
-      }
+    }
 
-      async function handleZip(zipFile) {
+    async function handleZip(zipFile) {
         const zip = await JSZip.loadAsync(zipFile);
         const entries = Object.keys(zip.files)
-          .filter(
-            (name) => /\.(jpe?g|png)$/i.test(name) && !zip.files[name].dir
-          )
-          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            .filter(
+                (name) => /\.(jpe?g|png)$/i.test(name) && !zip.files[name].dir
+            )
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
         for (const filename of entries) {
-          const file = zip.files[filename];
-          const blob = await file.async("blob");
-          const newFile = new File([blob], filename, { type: blob.type });
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            addImageToGrid(e.target.result, newFile);
-            filesList.push(newFile);
-          };
-          reader.readAsDataURL(blob);
+            const file = zip.files[filename];
+            const blob = await file.async("blob");
+            const newFile = new File([blob], filename, { type: blob.type });
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                addImageToGrid(e.target.result, newFile);
+                filesList.push(newFile);
+            };
+            reader.readAsDataURL(blob);
         }
-      }
+    }
 
-      function updateImageNumbers() {
+    function updateImageNumbers() {
         const items = imagePreview.querySelectorAll(".image-item");
         items.forEach((item, index) => {
-          const numberDiv = item.querySelector(".image-number");
-          numberDiv.innerText = index + 1;
-          if (index >= maxFiles) {
-            numberDiv.classList.add("over-limit");
-          } else {
-            numberDiv.classList.remove("over-limit");
-          }
+            const numberDiv = item.querySelector(".image-number");
+            numberDiv.innerText = index + 1;
+            if (index >= maxFiles) {
+                numberDiv.classList.add("over-limit");
+            } else {
+                numberDiv.classList.remove("over-limit");
+            }
         });
-      }
+    }
 
-      async function getDropboxAccessToken() {
-        console.log("🔑 Fetching Dropbox access token...");
+    async function getDropboxAccessToken() {
         const res = await fetch("/.netlify/functions/getDropboxToken");
-
-        console.log(
-          `   Token response status: ${res.status} ${res.statusText}`
-        );
-
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "");
-          console.error("❌ Failed to get Dropbox token:", errorText);
-          throw new Error(
-            `Failed to get Dropbox token: ${res.status} ${errorText}`
-          );
-        }
-
+        if (!res.ok) throw new Error("Failed to get Dropbox token");
         const data = await res.json();
-        console.log("✅ Token response:", {
-          hasAccessToken: !!data.access_token,
-          tokenLength: data.access_token ? data.access_token.length : 0,
-          expiresIn: data.expires_in,
-        });
-
         if (!data.access_token) throw new Error("No access token received");
         return data.access_token;
-      }
+    }
 
-      // Unified sanitizers
-      function sanitizeFolderName(name) {
+    // Unified sanitizers
+    function sanitizeFolderName(name) {
         return (name || "")
-          .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
-          .replace(/\s+/g, " ") // collapse multiple spaces
-          .trim();
-      }
+            .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
+            .replace(/\s+/g, " ") // collapse multiple spaces
+            .trim();
+    }
 
-      function sanitizePath(path) {
+    function sanitizePath(path) {
         return (path || "")
-          .replace(/\/+/g, "/") // collapse multiple slashes
-          .replace(/^\/+/, "") // remove leading slash
-          .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "") // same allow-list + slash for subfolders
-          .replace(/\s+/g, " ")
-          .trim();
-      }
+            .replace(/\/+/g, "/") // collapse multiple slashes
+            .replace(/^\/+/, "") // remove leading slash
+            .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "") // same allow-list + slash for subfolders
+            .replace(/\s+/g, " ")
+            .trim();
+    }
 
-      async function uploadFileToDropbox(file, accessToken, dropboxPath) {
+    async function uploadFileToDropbox(file, accessToken, dropboxPath) {
         // Sanitize the path to meet Dropbox requirements
         const sanitizedPath = sanitizePath(dropboxPath);
 
-        console.log(`📤 Uploading to Dropbox:`);
-        console.log(`   Original path: "${dropboxPath}"`);
-        console.log(`   Sanitized path: "${sanitizedPath}"`);
-        console.log(`   Final path: "/${sanitizedPath}"`);
-        console.log(`   File name: "${file.name}"`);
-        console.log(`   File size: ${file.size} bytes`);
-
         const url = "https://content.dropboxapi.com/2/files/upload";
         const args = {
-          path: `/${sanitizedPath}`,
-          mode: "add",
-          autorename: true,
-          mute: false,
-        };
-
-        console.log(`   Dropbox API args:`, JSON.stringify(args, null, 2));
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + accessToken,
-            "Dropbox-API-Arg": JSON.stringify(args),
-            "Content-Type": "application/octet-stream",
-          },
-          body: file,
-        });
-
-        console.log(`   Response status: ${res.status} ${res.statusText}`);
-
-        if (!res.ok) {
-          const bodyText = await res.text().catch(() => "");
-          console.error(`❌ Dropbox upload failed:`, {
-            status: res.status,
-            statusText: res.statusText,
-            body: bodyText,
             path: `/${sanitizedPath}`,
-          });
-
-          const err = new Error(
-            bodyText || `HTTP ${res.status}: ${res.statusText}`
-          );
-          err.status = res.status;
-          const ra = res.headers.get("Retry-After");
-          if (ra) {
-            const n = parseInt(ra, 10);
-            if (!isNaN(n)) err.retryAfter = n; // seconds
-          }
-          throw err;
+            mode: "add",
+            autorename: true,
+            mute: false,
+        };
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                Authorization: "Bearer " + accessToken,
+                "Dropbox-API-Arg": JSON.stringify(args),
+                "Content-Type": "application/octet-stream",
+            },
+            body: file,
+        });
+        if (!res.ok) {
+            const bodyText = await res.text().catch(() => "");
+            const err = new Error(bodyText || `HTTP ${res.status}`);
+            err.status = res.status;
+            const ra = res.headers.get("Retry-After");
+            if (ra) {
+                const n = parseInt(ra, 10);
+                if (!isNaN(n)) err.retryAfter = n; // seconds
+            }
+            throw err;
         }
+        return await res.json();
+    }
 
-        const result = await res.json();
-        console.log(`✅ Upload successful:`, result);
-        return result;
-      }
-
-      const NETLIFY_FUNCTION_URL =
+    const NETLIFY_FUNCTION_URL =
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
 
-      async function fetchLatestAddress() {
+    async function fetchLatestAddress() {
         try {
-          // Add cache-busting timestamp to force fresh data
-          const timestamp = new Date().getTime();
-          const response = await fetch(
-            `${NETLIFY_FUNCTION_URL}?t=${timestamp}`,
-            {
-              cache: "no-cache",
-              headers: {
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                Pragma: "no-cache",
-                Expires: "0",
-              },
+            const response = await fetch(NETLIFY_FUNCTION_URL);
+            if (response.ok) {
+                const data = await response.json();
+                console.log("🟢 [Proxy result ) = ", "success", data);
+                address = data.address;
+
+                // Fix #1: Always use the current submission's unit number, even if empty
+                // This prevents using the previous submission's unit number
+                addressNumber = data.unitNumber || "";
+
+                console.log(`📍 Address: "${address}", Unit: "${addressNumber}"`);
+                return data; // <-- return the fetched data
+            } else {
+                console.log("🟢 [Proxy result ) = ", "error", response);
+                return null; // <-- return null on error
             }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log("🟢 [Proxy result ) = ", "success", data);
-
-            // Store previous values for comparison
-            const previousAddress = address;
-            const previousUnit = addressNumber;
-
-            address = data.address || "";
-
-            // Fix #1: Always use the current submission's unit number, even if empty
-            // This prevents using the previous submission's unit number
-            addressNumber = data.unitNumber || "";
-
-            console.log(
-              `📍 Previous: "${previousAddress}" + "${previousUnit}"`
-            );
-            console.log(`📍 Current: "${address}" + "${addressNumber}"`);
-            console.log(`📍 Unit changed: ${previousUnit !== addressNumber}`);
-
-            return data; // <-- return the fetched data
-          } else {
-            console.log("🟢 [Proxy result ) = ", "error", response);
-            return null; // <-- return null on error
-          }
         } catch (err) {
-          console.error(err);
-          return null; // <-- return null on exception
+            console.error(err);
+            return null; // <-- return null on exception
         }
-      }
-      JFCustomWidget.subscribe("ready", function () {
-        // Reset address data to ensure fresh start
-        resetAddressData();
-
+    }
+    JFCustomWidget.subscribe("ready", function () {
         // Initial address fetch
         fetchLatestAddress();
-      });
+    });
 
-      document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function () {
         if (typeof JFCustomWidget !== "undefined") {
-          console.log("🟢 [JotForm Custom Widget API available )");
+            console.log("🟢 [JotForm Custom Widget API available )");
         }
 
         // Get widget settings
         const settings = JFCustomWidget.getWidgetSettings();
         if (settings) {
-          maxFiles = parseInt(settings.maxFiles) || 50;
-          if (settings.allowedTypes) {
-            allowedTypes = settings.allowedTypes
-              .split(",")
-              .map((type) => type.trim());
-          }
+            maxFiles = parseInt(settings.maxFiles) || 50;
+            if (settings.allowedTypes) {
+                allowedTypes = settings.allowedTypes
+                    .split(",")
+                    .map((type) => type.trim());
+            }
         }
 
         // Set initial fixed height
         JFCustomWidget.requestFrameResize({
-          height: 300,
+            height: 300,
         });
 
         // Set initial Next button state (disabled until API upload succeeds)
@@ -1028,8 +937,8 @@
 
         // Also mark widget as invalid on load to ensure Next button is disabled
         JFCustomWidget.sendSubmit({
-          valid: false,
-          value: "",
+            valid: false,
+            value: "",
         });
 
         const dropZone = document.getElementById("dropZone");
@@ -1043,100 +952,100 @@
 
         // Initialize Sortable
         new Sortable(imagePreview, {
-          animation: 150,
-          onSort: function () {
-            updateImageNumbers();
-            updateIframeHeight();
+            animation: 150,
+            onSort: function () {
+                updateImageNumbers();
+                updateIframeHeight();
 
-            // Clear pre-generated files when order changes
-            preGeneratedFiles = [];
+                // Clear pre-generated files when order changes
+                preGeneratedFiles = [];
 
-            // Reset Next button state when files are reordered (requires re-upload)
-            setNextButtonState(false);
-          },
+                // Reset Next button state when files are reordered (requires re-upload)
+                setNextButtonState(false);
+            },
         });
 
         // Event Listeners
         dropZone.addEventListener("click", () => fileInput.click());
 
         dropZone.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          dropZone.style.background = "#eef";
+            e.preventDefault();
+            dropZone.style.background = "#eef";
         });
 
         dropZone.addEventListener("dragleave", () => {
-          dropZone.style.background = "";
+            dropZone.style.background = "";
         });
 
         dropZone.addEventListener("drop", (e) => {
-          e.preventDefault();
-          dropZone.style.background = "";
-          const isFolderDrop = [...e.dataTransfer.items].some(
-            (item) =>
-              item.kind === "file" &&
-              item.webkitGetAsEntry &&
-              item.webkitGetAsEntry().isDirectory
-          );
-          if (isFolderDrop) {
-            alert(
-              "To upload a folder, please click the drop area and select it."
+            e.preventDefault();
+            dropZone.style.background = "";
+            const isFolderDrop = [...e.dataTransfer.items].some(
+                (item) =>
+                    item.kind === "file" &&
+                    item.webkitGetAsEntry &&
+                    item.webkitGetAsEntry().isDirectory
             );
-            return;
-          }
-          handleFiles(e.dataTransfer.files);
+            if (isFolderDrop) {
+                alert(
+                    "To upload a folder, please click the drop area and select it."
+                );
+                return;
+            }
+            handleFiles(e.dataTransfer.files);
         });
 
         //download re-arrange files as a zip
         downloadBtn.addEventListener("click", async (e) => {
-          e.preventDefault();
+            e.preventDefault();
 
-          try {
-            const zip = new JSZip();
-            const images = imagePreview.querySelectorAll(".image-item img");
+            try {
+                const zip = new JSZip();
+                const images = imagePreview.querySelectorAll(".image-item img");
 
-            if (images.length === 0) {
-              alert("No images to download.");
-              return;
+                if (images.length === 0) {
+                    alert("No images to download.");
+                    return;
+                }
+
+                // Use pre-generated files if available, otherwise generate on-demand
+                if (preGeneratedFiles.length === images.length) {
+                    console.log("Using pre-generated files for download");
+                    preGeneratedFiles.forEach((fileObj) => {
+                        zip.file(fileObj.filename, fileObj.file);
+                    });
+                } else {
+                    console.log("Generating files on-demand for download");
+                    for (let i = 0; i < images.length; i++) {
+                        const dataURL = images[i].src;
+                        const blob = await (await fetch(dataURL)).blob();
+                        zip.file(`${i + 1}.jpg`, blob);
+                    }
+                }
+
+                const blob = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "renumbered_photos.zip";
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Download error:", err);
+                alert("Failed to create download. Please try again.");
             }
-
-            // Use pre-generated files if available, otherwise generate on-demand
-            if (preGeneratedFiles.length === images.length) {
-              console.log("Using pre-generated files for download");
-              preGeneratedFiles.forEach((fileObj) => {
-                zip.file(fileObj.filename, fileObj.file);
-              });
-            } else {
-              console.log("Generating files on-demand for download");
-              for (let i = 0; i < images.length; i++) {
-                const dataURL = images[i].src;
-                const blob = await (await fetch(dataURL)).blob();
-                zip.file(`${i + 1}.jpg`, blob);
-              }
-            }
-
-            const blob = await zip.generateAsync({ type: "blob" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "renumbered_photos.zip";
-            a.click();
-            URL.revokeObjectURL(url);
-          } catch (err) {
-            console.error("Download error:", err);
-            alert("Failed to create download. Please try again.");
-          }
         });
 
         fileInput.addEventListener("change", (e) => {
-          handleFiles(e.target.files);
-          e.target.value = "";
+            handleFiles(e.target.files);
+            e.target.value = "";
         });
 
         sizeSlider.addEventListener("input", () => {
-          const newSize = sizeSlider.value + "px";
-          document.documentElement.style.setProperty("--item-size", newSize);
-          sliderValue.textContent = newSize;
-          updateIframeHeight();
+            const newSize = sizeSlider.value + "px";
+            document.documentElement.style.setProperty("--item-size", newSize);
+            sliderValue.textContent = newSize;
+            updateIframeHeight();
         });
 
         // Modal functionality
@@ -1145,344 +1054,323 @@
         const modalClose = document.querySelector("#imagePreviewModal .close");
 
         imagePreview.addEventListener("click", (e) => {
-          if (e.target.tagName === "IMG") {
-            const images = Array.from(imagePreview.querySelectorAll("img"));
-            currentIndex = images.indexOf(e.target);
-            showModalImage(currentIndex);
-          }
+            if (e.target.tagName === "IMG") {
+                const images = Array.from(imagePreview.querySelectorAll("img"));
+                currentIndex = images.indexOf(e.target);
+                showModalImage(currentIndex);
+            }
         });
 
         function showModalImage(index) {
-          const images = imagePreview.querySelectorAll("img");
-          if (index >= 0 && index < images.length) {
-            modalImg.src = images[index].src;
-            modal.style.display = "flex";
-            currentIndex = index;
-          }
+            const images = imagePreview.querySelectorAll("img");
+            if (index >= 0 && index < images.length) {
+                modalImg.src = images[index].src;
+                modal.style.display = "flex";
+                currentIndex = index;
+            }
         }
 
         document.querySelector("#imagePreviewModal .arrow.left").onclick = (
-          e
+            e
         ) => {
-          e.stopPropagation();
-          showModalImage(currentIndex - 1);
+            e.stopPropagation();
+            showModalImage(currentIndex - 1);
         };
 
         document.querySelector("#imagePreviewModal .arrow.right").onclick = (
-          e
+            e
         ) => {
-          e.stopPropagation();
-          showModalImage(currentIndex + 1);
+            e.stopPropagation();
+            showModalImage(currentIndex + 1);
         };
 
         modalClose.onclick = () => {
-          modal.style.display = "none";
+            modal.style.display = "none";
         };
 
         window.addEventListener("click", (e) => {
-          if (e.target === modal) {
-            modal.style.display = "none";
-          }
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
         });
 
         window.addEventListener("keydown", (e) => {
-          if (e.key === "Escape") {
-            modal.style.display = "none";
-          } else if (modal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              showModalImage(currentIndex - 1);
-            } else if (e.key === "ArrowRight") {
-              showModalImage(currentIndex + 1);
+            if (e.key === "Escape") {
+                modal.style.display = "none";
+            } else if (modal.style.display === "flex") {
+                if (e.key === "ArrowLeft") {
+                    showModalImage(currentIndex - 1);
+                } else if (e.key === "ArrowRight") {
+                    showModalImage(currentIndex + 1);
+                }
             }
-          }
         });
 
         // Subscribe to form submit
         JFCustomWidget.subscribe("submit", function () {
-          // Prevent form submission if no files have been uploaded
-          if (!hasSubmitted) {
-            alert("Please upload your photos first before proceeding.");
-            return;
-          }
+            // Prevent form submission if no files have been uploaded
+            if (!hasSubmitted) {
+                alert("Please upload your photos first before proceeding.");
+                return;
+            }
         });
 
         uploadBtn.addEventListener("click", async function (e) {
-          e.preventDefault();
-          if (isUploading) return;
+            e.preventDefault();
+            if (isUploading) return;
 
-          const totalImages =
-            imagePreview.querySelectorAll(".image-item").length;
+            const totalImages =
+                imagePreview.querySelectorAll(".image-item").length;
 
-          if (totalImages === 0) {
-            alert("Please upload at least one photo before proceeding.");
-            return;
-          }
-
-          if (totalImages > maxFiles) {
-            alert(
-              `Cannot proceed with ${totalImages} photos. Maximum is ${maxFiles}.\n\nPlease remove ${
-                totalImages - maxFiles
-              } photos to continue.`
-            );
-            return;
-          }
-
-          try {
-            isUploading = true;
-            setNextButtonState(false);
-            loadingSpinner.style.display = "flex";
-
-            // Update loading text
-            const loadingText = document.querySelector(".loading-text");
-            if (loadingText) {
-              loadingText.textContent = "Preparing files...";
+            if (totalImages === 0) {
+                alert("Please upload at least one photo before proceeding.");
+                return;
             }
 
-            // Pre-generate File objects to preserve order and filenames
-            preGenerateFileObjects();
-
-            if (preGeneratedFiles.length === 0) {
-              throw new Error("No files to upload");
-            }
-
-            // Get Dropbox access token
-            const accessToken = await getDropboxAccessToken();
-
-            // Verify we have address data (should already be loaded from widget initialization)
-            console.log("� Using cnurrent address data for upload:");
-            console.log(`   Address: "${address}"`);
-            console.log(`   Unit: "${addressNumber}"`);
-
-            if (!address || address.trim() === "") {
-              console.warn(
-                "⚠️ No address data available, fetching fresh data..."
-              );
-              await fetchLatestAddress();
-            }
-
-            // When building the folder name
-            const unitPart =
-              addressNumber &&
-              addressNumber.trim() !== "" &&
-              addressNumber.trim() !== "1"
-                ? ` ${addressNumber.trim()}`
-                : "";
-
-            const rawFolderName = `${(address || "").trim()}${unitPart}`;
-            const folderName = sanitizeFolderName(rawFolderName);
-
-            console.log(`📁 Folder name construction:`);
-            console.log(`   Address: "${address}"`);
-            console.log(`   Unit part: "${unitPart}"`);
-            console.log(`   Raw folder name: "${rawFolderName}"`);
-            console.log(`   Sanitized folder name: "${folderName}"`);
-
-            if (!folderName || folderName.trim() === "") {
-              throw new Error(
-                "Folder name is empty! Cannot upload without a valid folder name."
-              );
-            }
-
-            // Upload files in parallel with concurrency control
-            const uploadResults = await uploadFilesInParallel(
-              preGeneratedFiles,
-              accessToken,
-              folderName
-            );
-
-            // Check results
-            const successful = uploadResults.filter((r) => r.success);
-            const failed = uploadResults.filter((r) => !r.success);
-
-            console.log(
-              `✅ Upload completed: ${successful.length} successful, ${failed.length} failed`
-            );
-
-            if (failed.length > 0) {
-              const failedFiles = failed.map((f) => f.filename).join(", ");
-              const errorMessages = failed
-                .map((f) => `${f.filename}: ${f.error}`)
-                .join("\n");
-
-              console.error("Failed uploads:", errorMessages);
-
-              if (successful.length > 0) {
-                // Give user options: Proceed, Retry, or Cancel
-                const choice = await showCustomConfirm(
-                  "Upload Partially Failed",
-                  `⚠️ ${failed.length} files failed to upload:\n${failedFiles}\n\n${successful.length} files uploaded successfully.\n\nWhat would you like to do?`,
-                  {
-                    showRetry: true,
-                    showProceed: true,
-                    showCancel: false,
-                    retryText: "Retry Failed",
-                    proceedText: "Proceed Anyway",
-                  }
+            if (totalImages > maxFiles) {
+                alert(
+                    `Cannot proceed with ${totalImages} photos. Maximum is ${maxFiles}.\n\nPlease remove ${
+                        totalImages - maxFiles
+                    } photos to continue.`
                 );
+                return;
+            }
 
-                if (choice === "retry") {
-                  // User chose to retry failed uploads
-                  console.log("🔄 Retrying failed uploads...");
+            try {
+                isUploading = true;
+                setNextButtonState(false);
+                loadingSpinner.style.display = "flex";
 
-                  // Update loading text
-                  if (loadingText) {
-                    loadingText.textContent = `Retrying ${failed.length} failed uploads...`;
-                  }
-
-                  // Extract failed file objects for retry
-                  const failedFileObjects = failed
-                    .map((failedResult) => {
-                      return preGeneratedFiles.find(
-                        (fileObj) => fileObj.filename === failedResult.filename
-                      );
-                    })
-                    .filter(Boolean); // Remove any undefined entries
-
-                  if (failedFileObjects.length > 0) {
-                    // Retry failed uploads
-                    const retryResults = await uploadFilesInParallel(
-                      failedFileObjects,
-                      accessToken,
-                      folderName
-                    );
-
-                    const retrySuccessful = retryResults.filter(
-                      (r) => r.success
-                    );
-                    const retryFailed = retryResults.filter((r) => !r.success);
-
-                    console.log(
-                      `🔄 Retry completed: ${retrySuccessful.length} successful, ${retryFailed.length} still failed`
-                    );
-
-                    if (retryFailed.length > 0) {
-                      const stillFailedFiles = retryFailed
-                        .map((f) => f.filename)
-                        .join(", ");
-                      alert(
-                        `⚠️ ${retryFailed.length} files still failed after retry:\n${stillFailedFiles}\n\n` +
-                          `Total successful: ${
-                            successful.length + retrySuccessful.length
-                          }/${uploadResults.length}`
-                      );
-                    } else {
-                      alert(
-                        `✅ All failed uploads succeeded on retry!\nAll ${uploadResults.length} files uploaded successfully!`
-                      );
-                    }
-
-                    // Update totals
-                    const totalSuccessful =
-                      successful.length + retrySuccessful.length;
-                    const totalFailed = retryFailed.length;
-
-                    if (totalSuccessful > 0) {
-                      hasSubmitted = true;
-                      setNextButtonState(true);
-                    }
-
-                    // Skip the final success message since we already showed retry results
-                    return;
-                  }
-                } else if (choice === "proceed") {
-                  // User chose to proceed with partial success
-                  console.log(
-                    "User chose to proceed with partial upload success"
-                  );
+                // Update loading text
+                const loadingText = document.querySelector(".loading-text");
+                if (loadingText) {
+                    loadingText.textContent = "Preparing files...";
                 }
-              } else {
-                // All uploads failed - offer retry option
-                const retryAll = await showCustomConfirm(
-                  "All Uploads Failed",
-                  `❌ All ${failed.length} uploads failed.\n\nWould you like to retry all uploads?`,
-                  {
-                    showRetry: true,
-                    showProceed: false,
-                    showCancel: true,
-                    retryText: "Retry All",
-                    cancelText: "Abort",
-                  }
-                );
 
-                if (retryAll === "retry") {
-                  console.log("🔄 Retrying all uploads...");
+                // Pre-generate File objects to preserve order and filenames
+                preGenerateFileObjects();
 
-                  if (loadingText) {
-                    loadingText.textContent = `Retrying all ${failed.length} uploads...`;
-                  }
+                if (preGeneratedFiles.length === 0) {
+                    throw new Error("No files to upload");
+                }
 
-                  const retryResults = await uploadFilesInParallel(
+                // Get Dropbox access token
+                const accessToken = await getDropboxAccessToken();
+
+                // Fix #1: Fetch latest address data right before upload to ensure current unit number
+                await fetchLatestAddress();
+
+                // When building the folder name
+                const unitPart =
+                    addressNumber &&
+                    addressNumber.trim() !== "" &&
+                    addressNumber.trim() !== "1"
+                        ? ` ${addressNumber.trim()}`
+                        : "";
+
+                const rawFolderName = `${(address || "").trim()}${unitPart}`;
+                const folderName = sanitizeFolderName(rawFolderName);
+
+                // Upload files in parallel with concurrency control
+                const uploadResults = await uploadFilesInParallel(
                     preGeneratedFiles,
                     accessToken,
                     folderName
-                  );
+                );
 
-                  const retrySuccessful = retryResults.filter((r) => r.success);
-                  const retryFailed = retryResults.filter((r) => !r.success);
+                // Check results
+                const successful = uploadResults.filter((r) => r.success);
+                const failed = uploadResults.filter((r) => !r.success);
 
-                  if (retrySuccessful.length > 0) {
-                    hasSubmitted = true;
-                    setNextButtonState(true);
+                console.log(
+                    `✅ Upload completed: ${successful.length} successful, ${failed.length} failed`
+                );
 
-                    if (retryFailed.length > 0) {
-                      alert(
-                        `⚠️ Retry partially successful:\n${retrySuccessful.length} succeeded, ${retryFailed.length} still failed`
-                      );
+                if (failed.length > 0) {
+                    const failedFiles = failed.map((f) => f.filename).join(", ");
+                    const errorMessages = failed
+                        .map((f) => `${f.filename}: ${f.error}`)
+                        .join("\n");
+
+                    console.error("Failed uploads:", errorMessages);
+
+                    if (successful.length > 0) {
+                        // Give user options: Proceed, Retry, or Cancel
+                        const choice = await showCustomConfirm(
+                            "Upload Partially Failed",
+                            `⚠️ ${failed.length} files failed to upload:\n${failedFiles}\n\n${successful.length} files uploaded successfully.\n\nWhat would you like to do?`,
+                            {
+                                showRetry: true,
+                                showProceed: true,
+                                showCancel: false,
+                                retryText: "Retry Failed",
+                                proceedText: "Proceed Anyway",
+                            }
+                        );
+
+                        if (choice === "retry") {
+                            // User chose to retry failed uploads
+                            console.log("🔄 Retrying failed uploads...");
+
+                            // Update loading text
+                            if (loadingText) {
+                                loadingText.textContent = `Retrying ${failed.length} failed uploads...`;
+                            }
+
+                            // Extract failed file objects for retry
+                            const failedFileObjects = failed
+                                .map((failedResult) => {
+                                    return preGeneratedFiles.find(
+                                        (fileObj) => fileObj.filename === failedResult.filename
+                                    );
+                                })
+                                .filter(Boolean); // Remove any undefined entries
+
+                            if (failedFileObjects.length > 0) {
+                                // Retry failed uploads
+                                const retryResults = await uploadFilesInParallel(
+                                    failedFileObjects,
+                                    accessToken,
+                                    folderName
+                                );
+
+                                const retrySuccessful = retryResults.filter(
+                                    (r) => r.success
+                                );
+                                const retryFailed = retryResults.filter((r) => !r.success);
+
+                                console.log(
+                                    `🔄 Retry completed: ${retrySuccessful.length} successful, ${retryFailed.length} still failed`
+                                );
+
+                                if (retryFailed.length > 0) {
+                                    const stillFailedFiles = retryFailed
+                                        .map((f) => f.filename)
+                                        .join(", ");
+                                    alert(
+                                        `⚠️ ${retryFailed.length} files still failed after retry:\n${stillFailedFiles}\n\n` +
+                                        `Total successful: ${
+                                            successful.length + retrySuccessful.length
+                                        }/${uploadResults.length}`
+                                    );
+                                } else {
+                                    alert(
+                                        `✅ All failed uploads succeeded on retry!\nAll ${uploadResults.length} files uploaded successfully!`
+                                    );
+                                }
+
+                                // Update totals
+                                const totalSuccessful =
+                                    successful.length + retrySuccessful.length;
+                                const totalFailed = retryFailed.length;
+
+                                if (totalSuccessful > 0) {
+                                    hasSubmitted = true;
+                                    setNextButtonState(true);
+                                }
+
+                                // Skip the final success message since we already showed retry results
+                                return;
+                            }
+                        } else if (choice === "proceed") {
+                            // User chose to proceed with partial success
+                            console.log(
+                                "User chose to proceed with partial upload success"
+                            );
+                        }
                     } else {
-                      alert(`✅ All uploads succeeded on retry!`);
+                        // All uploads failed - offer retry option
+                        const retryAll = await showCustomConfirm(
+                            "All Uploads Failed",
+                            `❌ All ${failed.length} uploads failed.\n\nWould you like to retry all uploads?`,
+                            {
+                                showRetry: true,
+                                showProceed: false,
+                                showCancel: true,
+                                retryText: "Retry All",
+                                cancelText: "Abort",
+                            }
+                        );
+
+                        if (retryAll === "retry") {
+                            console.log("🔄 Retrying all uploads...");
+
+                            if (loadingText) {
+                                loadingText.textContent = `Retrying all ${failed.length} uploads...`;
+                            }
+
+                            const retryResults = await uploadFilesInParallel(
+                                preGeneratedFiles,
+                                accessToken,
+                                folderName
+                            );
+
+                            const retrySuccessful = retryResults.filter((r) => r.success);
+                            const retryFailed = retryResults.filter((r) => !r.success);
+
+                            if (retrySuccessful.length > 0) {
+                                hasSubmitted = true;
+                                setNextButtonState(true);
+
+                                if (retryFailed.length > 0) {
+                                    alert(
+                                        `⚠️ Retry partially successful:\n${retrySuccessful.length} succeeded, ${retryFailed.length} still failed`
+                                    );
+                                } else {
+                                    alert(`✅ All uploads succeeded on retry!`);
+                                }
+
+                                // Skip the final success message since we already showed retry results
+                                return;
+                            } else {
+                                throw new Error(`All uploads failed again after retry`);
+                            }
+                        } else {
+                            throw new Error(`All uploads failed:\n${errorMessages}`);
+                        }
                     }
-
-                    // Skip the final success message since we already showed retry results
-                    return;
-                  } else {
-                    throw new Error(`All uploads failed again after retry`);
-                  }
-                } else {
-                  throw new Error(`All uploads failed:\n${errorMessages}`);
                 }
-              }
+
+                hasSubmitted = true;
+                setNextButtonState(true);
+
+                const message =
+                    failed.length > 0
+                        ? `✅ Upload completed with ${failed.length} failures.\n${successful.length}/${uploadResults.length} files uploaded successfully!`
+                        : `✅ All ${successful.length} files uploaded successfully!`;
+
+                alert(message);
+            } catch (err) {
+                console.error("Upload error:", err);
+
+                let errorMessage = "Upload failed";
+                if (err.message.includes("token")) {
+                    errorMessage = "Authentication failed. Please try again.";
+                } else if (
+                    err.message.includes("network") ||
+                    err.message.includes("fetch")
+                ) {
+                    errorMessage =
+                        "Network error. Please check your connection and try again.";
+                } else {
+                    errorMessage = `Upload failed: ${err.message}`;
+                }
+
+                alert(`❌ ${errorMessage}`);
+                hasSubmitted = false;
+                setNextButtonState(false);
+            } finally {
+                loadingSpinner.style.display = "none";
+                isUploading = false;
+
+                // Reset loading text
+                const loadingText = document.querySelector(".loading-text");
+                if (loadingText) {
+                    loadingText.textContent = "Uploading files...";
+                }
             }
-
-            hasSubmitted = true;
-            setNextButtonState(true);
-
-            const message =
-              failed.length > 0
-                ? `✅ Upload completed with ${failed.length} failures.\n${successful.length}/${uploadResults.length} files uploaded successfully!`
-                : `✅ All ${successful.length} files uploaded successfully!`;
-
-            alert(message);
-          } catch (err) {
-            console.error("Upload error:", err);
-
-            let errorMessage = "Upload failed";
-            if (err.message.includes("token")) {
-              errorMessage = "Authentication failed. Please try again.";
-            } else if (
-              err.message.includes("network") ||
-              err.message.includes("fetch")
-            ) {
-              errorMessage =
-                "Network error. Please check your connection and try again.";
-            } else {
-              errorMessage = `Upload failed: ${err.message}`;
-            }
-
-            alert(`❌ ${errorMessage}`);
-            hasSubmitted = false;
-            setNextButtonState(false);
-          } finally {
-            loadingSpinner.style.display = "none";
-            isUploading = false;
-
-            // Reset loading text
-            const loadingText = document.querySelector(".loading-text");
-            if (loadingText) {
-              loadingText.textContent = "Uploading files...";
-            }
-          }
         });
-      });
-    </script>
-  </body>
+    });
+</script>
+</body>
 </html>
