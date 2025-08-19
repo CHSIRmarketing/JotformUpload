@@ -1106,15 +1106,6 @@
             }
         });
 
-        // Subscribe to form submit
-        JFCustomWidget.subscribe("submit", function () {
-            // Prevent form submission if no files have been uploaded
-            if (!hasSubmitted) {
-                alert("Please upload your photos first before proceeding.");
-                return;
-            }
-        });
-
         uploadBtn.addEventListener("click", async function (e) {
             e.preventDefault();
             if (isUploading) return;
