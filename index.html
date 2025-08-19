@@ -536,6 +536,12 @@
         images.forEach((img, index) => {
           const filename = `${index + 1}.jpg`;
           const file = dataURLtoFile(img.src, filename);
+
+          console.log(`📷 Pre-generating file ${index + 1}:`);
+          console.log(`   Filename: "${filename}"`);
+          console.log(`   File size: ${file.size} bytes`);
+          console.log(`   File type: "${file.type}"`);
+
           preGeneratedFiles.push({
             file: file,
             originalIndex: index,
@@ -543,7 +549,9 @@
           });
         });
 
-        console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
+        console.log(
+          `✅ Pre-generated ${preGeneratedFiles.length} file objects`
+        );
       }
 
       // Upload with retry logic
@@ -609,6 +617,9 @@
 
         for (const fileObj of fileObjects) {
           const dropboxPath = `Listings/${folderName}/${fileObj.filename}`;
+
+          console.log(`🔄 Preparing upload for: ${fileObj.filename}`);
+          console.log(`   Full Dropbox path: "${dropboxPath}"`);
 
           const uploadPromise = uploadWithRetry(
             fileObj,
@@ -832,9 +843,28 @@
       }
 
       async function getDropboxAccessToken() {
+        console.log("🔑 Fetching Dropbox access token...");
         const res = await fetch("/.netlify/functions/getDropboxToken");
-        if (!res.ok) throw new Error("Failed to get Dropbox token");
+
+        console.log(
+          `   Token response status: ${res.status} ${res.statusText}`
+        );
+
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => "");
+          console.error("❌ Failed to get Dropbox token:", errorText);
+          throw new Error(
+            `Failed to get Dropbox token: ${res.status} ${errorText}`
+          );
+        }
+
         const data = await res.json();
+        console.log("✅ Token response:", {
+          hasAccessToken: !!data.access_token,
+          tokenLength: data.access_token ? data.access_token.length : 0,
+          expiresIn: data.expires_in,
+        });
+
         if (!data.access_token) throw new Error("No access token received");
         return data.access_token;
       }
@@ -860,6 +890,13 @@
         // Sanitize the path to meet Dropbox requirements
         const sanitizedPath = sanitizePath(dropboxPath);
 
+        console.log(`📤 Uploading to Dropbox:`);
+        console.log(`   Original path: "${dropboxPath}"`);
+        console.log(`   Sanitized path: "${sanitizedPath}"`);
+        console.log(`   Final path: "/${sanitizedPath}"`);
+        console.log(`   File name: "${file.name}"`);
+        console.log(`   File size: ${file.size} bytes`);
+
         const url = "https://content.dropboxapi.com/2/files/upload";
         const args = {
           path: `/${sanitizedPath}`,
@@ -867,6 +904,9 @@
           autorename: true,
           mute: false,
         };
+
+        console.log(`   Dropbox API args:`, JSON.stringify(args, null, 2));
+
         const res = await fetch(url, {
           method: "POST",
           headers: {
@@ -876,9 +916,21 @@
           },
           body: file,
         });
+
+        console.log(`   Response status: ${res.status} ${res.statusText}`);
+
         if (!res.ok) {
           const bodyText = await res.text().catch(() => "");
-          const err = new Error(bodyText || `HTTP ${res.status}`);
+          console.error(`❌ Dropbox upload failed:`, {
+            status: res.status,
+            statusText: res.statusText,
+            body: bodyText,
+            path: `/${sanitizedPath}`,
+          });
+
+          const err = new Error(
+            bodyText || `HTTP ${res.status}: ${res.statusText}`
+          );
           err.status = res.status;
           const ra = res.headers.get("Retry-After");
           if (ra) {
@@ -887,7 +939,10 @@
           }
           throw err;
         }
-        return await res.json();
+
+        const result = await res.json();
+        console.log(`✅ Upload successful:`, result);
+        return result;
       }
 
       const NETLIFY_FUNCTION_URL =
@@ -1193,10 +1248,17 @@
             // Get Dropbox access token
             const accessToken = await getDropboxAccessToken();
 
-            // Fix #1: Reset and fetch latest address data right before upload to ensure current unit number
-            console.log("🔄 Resetting and fetching latest address data...");
-            resetAddressData(); // Clear any stale data first
-            await fetchLatestAddress();
+            // Verify we have address data (should already be loaded from widget initialization)
+            console.log("� Using cnurrent address data for upload:");
+            console.log(`   Address: "${address}"`);
+            console.log(`   Unit: "${addressNumber}"`);
+
+            if (!address || address.trim() === "") {
+              console.warn(
+                "⚠️ No address data available, fetching fresh data..."
+              );
+              await fetchLatestAddress();
+            }
 
             // When building the folder name
             const unitPart =
@@ -1208,6 +1270,18 @@
 
             const rawFolderName = `${(address || "").trim()}${unitPart}`;
             const folderName = sanitizeFolderName(rawFolderName);
+
+            console.log(`📁 Folder name construction:`);
+            console.log(`   Address: "${address}"`);
+            console.log(`   Unit part: "${unitPart}"`);
+            console.log(`   Raw folder name: "${rawFolderName}"`);
+            console.log(`   Sanitized folder name: "${folderName}"`);
+
+            if (!folderName || folderName.trim() === "") {
+              throw new Error(
+                "Folder name is empty! Cannot upload without a valid folder name."
+              );
+            }
 
             // Upload files in parallel with concurrency control
             const uploadResults = await uploadFilesInParallel(
