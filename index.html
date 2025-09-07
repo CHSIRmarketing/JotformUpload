@@ -864,7 +864,7 @@ function preGenerateFileObjects() {
         return (path || "")
             .replace(/\/+/g, "/") // collapse multiple slashes
             .replace(/^\/+/, "") // remove leading slash
-            .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "") // same allow-list + slash for subfolders
+            .replace(/[^A-Za-z0-9 .\-&,#_\/]/g, "") // same allow-list + slash for subfolders
             .replace(/\s+/g, " ")
             .trim();
     }
