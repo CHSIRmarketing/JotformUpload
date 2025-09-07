@@ -540,8 +540,11 @@ function preGenerateFileObjects() {
             .replace(/[\\/]/g, "-")           // replace slashes with dashes
             .replace(/[\u0000-\u001F]/g, ""); // strip control chars
 
-        // Final filename: 1_originalname.jpg
-        const filename = `${index + 1} -- ${safeBase}.${ext}`;
+        // Final filename: 1 - originalname.jpg
+        const filename = `${index + 1} - ${safeBase}.${ext}`;
+
+        // DEBUG LOG
+        console.log("Generated filename (preGenerateFileObjects):", filename);
 
         const file = dataURLtoFile(img.src, filename);
         preGeneratedFiles.push({
@@ -553,7 +556,6 @@ function preGenerateFileObjects() {
 
     console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
 }
-
 
 
     // Upload with retry logic
