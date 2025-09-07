@@ -523,18 +523,34 @@
         preGeneratedFiles = [];
         const images = imagePreview.querySelectorAll(".image-item img");
 
-        images.forEach((img, index) => {
-            const filename = `${index + 1}.jpg`;
-            const file = dataURLtoFile(img.src, filename);
-            preGeneratedFiles.push({
-                file: file,
-                originalIndex: index,
-                filename: filename,
-            });
-        });
+images.forEach((img, index) => {
+    // Get original name from the parent .image-item
+    const item = img.closest(".image-item");
+    const originalName = (item && item.dataset.originalName) ? item.dataset.originalName : `image_${index + 1}.jpg`;
 
-        console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
-    }
+    // Split into base + extension
+    const dot = originalName.lastIndexOf(".");
+    const base = dot > 0 ? originalName.slice(0, dot) : originalName;
+    const ext  = dot > 0 ? originalName.slice(dot + 1).toLowerCase() : "jpg";
+
+    // Optional: light sanitize for Dropbox path safety
+    const safeBase = base.replace(/[\\/]/g, "-").replace(/[\u0000-\u001F]/g, "");
+
+    // Final filename: 1_originalname.jpg
+    const filename = `${index + 1}_${safeBase}.${ext}`;
+
+    const file = dataURLtoFile(img.src, filename);
+    preGeneratedFiles.push({
+        file: file,
+        originalIndex: index,
+        filename: filename,
+    });
+});
+
+console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
+
+}
+
 
     // Upload with retry logic
     async function uploadWithRetry(
@@ -706,9 +722,12 @@
         hasImages = true;
         const imageItem = document.createElement("div");
         imageItem.className = "image-item";
+        
+		// NEW: remember original filename for later
+		imageItem.dataset.originalName = fileRef ? fileRef.name : "";
 
-        const img = document.createElement("img");
-        img.src = dataUrl;
+		const img = document.createElement("img");
+		img.src = dataUrl;
 
         img.onload = () => {
             const ratio = img.naturalWidth / img.naturalHeight;
@@ -1008,20 +1027,12 @@
                     return;
                 }
 
-                // Use pre-generated files if available, otherwise generate on-demand
-                if (preGeneratedFiles.length === images.length) {
-                    console.log("Using pre-generated files for download");
-                    preGeneratedFiles.forEach((fileObj) => {
-                        zip.file(fileObj.filename, fileObj.file);
-                    });
-                } else {
-                    console.log("Generating files on-demand for download");
-                    for (let i = 0; i < images.length; i++) {
-                        const dataURL = images[i].src;
-                        const blob = await (await fetch(dataURL)).blob();
-                        zip.file(`${i + 1}.jpg`, blob);
-                    }
-                }
+// Always use the pre-generated files to guarantee correct names
+preGenerateFileObjects();
+preGeneratedFiles.forEach((fileObj) => {
+    zip.file(fileObj.filename, fileObj.file);
+});
+
 
                 const blob = await zip.generateAsync({ type: "blob" });
                 const url = URL.createObjectURL(blob);
