@@ -518,38 +518,42 @@
         return new File([u8arr], filename, { type: mime });
     }
 
-    // Pre-generate File objects from current image order
-    function preGenerateFileObjects() {
-        preGeneratedFiles = [];
-        const images = imagePreview.querySelectorAll(".image-item img");
+ // Pre-generate File objects from current image order
+function preGenerateFileObjects() {
+    preGeneratedFiles = [];
+    const images = imagePreview.querySelectorAll(".image-item img");
 
-images.forEach((img, index) => {
-    // Get original name from the parent .image-item
-    const item = img.closest(".image-item");
-    const originalName = (item && item.dataset.originalName) ? item.dataset.originalName : `image_${index + 1}.jpg`;
+    images.forEach((img, index) => {
+        // Get original name from the parent .image-item
+        const item = img.closest(".image-item");
+        const originalName = (item && item.dataset.originalName)
+            ? item.dataset.originalName
+            : `image_${index + 1}.jpg`;
 
-    // Split into base + extension
-    const dot = originalName.lastIndexOf(".");
-    const base = dot > 0 ? originalName.slice(0, dot) : originalName;
-    const ext  = dot > 0 ? originalName.slice(dot + 1).toLowerCase() : "jpg";
+        // Split into base + extension
+        const dot = originalName.lastIndexOf(".");
+        const base = dot > 0 ? originalName.slice(0, dot) : originalName;
+        const ext  = dot > 0 ? originalName.slice(dot + 1).toLowerCase() : "jpg";
 
-    // Optional: light sanitize for Dropbox path safety
-    const safeBase = base.replace(/[\\/]/g, "-").replace(/[\u0000-\u001F]/g, "");
+        // Sanitize: keep underscores, replace slashes, strip control chars
+        const safeBase = base
+            .replace(/[\\/]/g, "-")           // replace slashes with dashes
+            .replace(/[\u0000-\u001F]/g, ""); // strip control chars
 
-    // Final filename: 1_originalname.jpg
-    const filename = `${index + 1}_${safeBase}.${ext}`;
+        // Final filename: 1_originalname.jpg
+        const filename = `${index + 1}_${safeBase}.${ext}`;
 
-    const file = dataURLtoFile(img.src, filename);
-    preGeneratedFiles.push({
-        file: file,
-        originalIndex: index,
-        filename: filename,
+        const file = dataURLtoFile(img.src, filename);
+        preGeneratedFiles.push({
+            file: file,
+            originalIndex: index,
+            filename: filename,
+        });
     });
-});
 
-console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
-
+    console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
 }
+
 
 
     // Upload with retry logic
