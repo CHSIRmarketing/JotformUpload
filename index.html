@@ -541,7 +541,7 @@ function preGenerateFileObjects() {
             .replace(/[\u0000-\u001F]/g, ""); // strip control chars
 
         // Final filename: 1_originalname.jpg
-        const filename = `${index + 1}_${safeBase}.${ext}`;
+        const filename = `${index + 1} -- ${safeBase}.${ext}`;
 
         const file = dataURLtoFile(img.src, filename);
         preGeneratedFiles.push({
