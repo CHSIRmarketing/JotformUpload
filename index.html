@@ -812,26 +812,38 @@ function preGenerateFileObjects() {
         updateIframeHeight();
     }
 
-    async function handleZip(zipFile) {
-        const zip = await JSZip.loadAsync(zipFile);
-        const entries = Object.keys(zip.files)
-            .filter(
-                (name) => /\.(jpe?g|png)$/i.test(name) && !zip.files[name].dir
-            )
-            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+async function handleZip(zipFile) {
+    const zip = await JSZip.loadAsync(zipFile);
 
-        for (const filename of entries) {
-            const file = zip.files[filename];
-            const blob = await file.async("blob");
-            const newFile = new File([blob], filename, { type: blob.type });
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                addImageToGrid(e.target.result, newFile);
-                filesList.push(newFile);
-            };
-            reader.readAsDataURL(blob);
-        }
+    // Keep only real image files; drop macOS junk
+    const entries = Object.keys(zip.files)
+        .filter((name) => !zip.files[name].dir)                // not a folder
+        .filter((name) => !name.startsWith("__MACOSX/"))       // drop __MACOSX
+        .filter((name) => !/(^|\/)\._/.test(name))             // drop ._ files
+        .filter((name) => /\.(jpe?g|png)$/i.test(name))        // only jpg/png by name
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    for (const filename of entries) {
+        const fileEntry = zip.files[filename];
+        const blob = await fileEntry.async("blob");
+        if (blob.size === 0) continue; // skip zero-byte files
+
+
+        // Some junk can still sneak through; trust the blob MIME
+        if (!blob.type || !blob.type.startsWith("image/")) continue;
+
+        // Use just the base name (strip any folders inside the zip)
+        const baseName = filename.split("/").pop();
+        const newFile = new File([blob], baseName, { type: blob.type });
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            addImageToGrid(e.target.result, newFile);
+            filesList.push(newFile);
+        };
+        reader.readAsDataURL(blob);
     }
+}
 
     function updateImageNumbers() {
         const items = imagePreview.querySelectorAll(".image-item");
@@ -857,7 +869,7 @@ function preGenerateFileObjects() {
     // Unified sanitizers
     function sanitizeFolderName(name) {
         return (name || "")
-            .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
+            .replace(/[^A-Za-z0-9 .\-&,#()]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
             .replace(/\s+/g, " ") // collapse multiple spaces
             .trim();
     }
@@ -866,7 +878,7 @@ function preGenerateFileObjects() {
         return (path || "")
             .replace(/\/+/g, "/") // collapse multiple slashes
             .replace(/^\/+/, "") // remove leading slash
-            .replace(/[^A-Za-z0-9 .\-&,#_\/]/g, "") // same allow-list + slash for subfolders
+            .replace(/[^A-Za-z0-9 .\-&,#_\/()]/g, "") // same allow-list + slash for subfolders
             .replace(/\s+/g, " ")
             .trim();
     }
