@@ -919,33 +919,13 @@ async function handleZip(zipFile) {
 
     const NETLIFY_FUNCTION_URL =
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
+    const NETLIFY_DEVICE_ID_URL =
+        "https://getaddressinfofromjotform.netlify.app/.netlify/functions/getDeviceId";
 
     async function fetchLatestAddress() {
-        console.log("get address => start .. v1");
         try {
-            function accessNetlifyStorage() {
-                const iframe = document.createElement('iframe');
-                iframe.src = 'https://getaddressinfromjotform.netlify.app/storage-bridge.html';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-
-                iframe.onload = () => {
-                    // Request data
-                    iframe.contentWindow.postMessage({
-                        type: 'GET_STORAGE_ITEM',
-                        key: 'addressNumber'
-                    }, '*');
-                };
-
-                // Listen for response
-                window.addEventListener('message', (e) => {
-                    if (e.data.type === 'STORAGE_RESPONSE') {
-                        console.log('Got data:', e.data.result);
-                    }
-                });
-            }
-
-            accessNetlifyStorage();
+            const response1 = await fetch(NETLIFY_DEVICE_ID_URL);
+            console.log(response1, 'response1')
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
                 const data = await response.json();
@@ -1010,7 +990,6 @@ async function handleZip(zipFile) {
         const sliderValue = document.getElementById("sliderValue");
         const downloadBtn = document.getElementById("downloadBtn");
         const loadingSpinner = document.getElementById("loadingSpinner");
-        const deviceId = localStorage.getItem('deviceId')
 
         // Initialize Sortable
         new Sortable(imagePreview, {
