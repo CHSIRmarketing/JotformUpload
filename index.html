@@ -829,9 +829,6 @@
             if (blob.size === 0) continue; // skip zero-byte files
 
 
-            // Some junk can still sneak through; trust the blob MIME
-            if (!blob.type || !blob.type.startsWith("image/")) continue;
-
             // Use just the base name (strip any folders inside the zip)
             const baseName = filename.split("/").pop();
             const newFile = new File([blob], baseName, { type: blob.type });
