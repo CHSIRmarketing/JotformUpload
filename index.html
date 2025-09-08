@@ -923,14 +923,29 @@ async function handleZip(zipFile) {
     async function fetchLatestAddress() {
         console.log("get address => start .. v1");
         try {
-            window.DeviceManager = {
-                deviceId: null,
-                getOrCreate() {
-                    return this.deviceId;
-                }
-            };
-            const deviceId = window.DeviceManager.getOrCreate();
-            console.log(deviceId, 'deviceId')
+            function accessNetlifyStorage() {
+                const iframe = document.createElement('iframe');
+                iframe.src = 'https://getaddressinfromjotform.netlify.app/storage-bridge.html';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                iframe.onload = () => {
+                    // Request data
+                    iframe.contentWindow.postMessage({
+                        type: 'GET_STORAGE_ITEM',
+                        key: 'addressNumber'
+                    }, '*');
+                };
+
+                // Listen for response
+                window.addEventListener('message', (e) => {
+                    if (e.data.type === 'STORAGE_RESPONSE') {
+                        console.log('Got data:', e.data.result);
+                    }
+                });
+            }
+
+            accessNetlifyStorage();
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
                 const data = await response.json();
@@ -996,7 +1011,7 @@ async function handleZip(zipFile) {
         const downloadBtn = document.getElementById("downloadBtn");
         const loadingSpinner = document.getElementById("loadingSpinner");
         const deviceId = localStorage.getItem('deviceId')
-        console.log(deviceId, 'deviceId', localStorage.getItem('deviceId'))
+
         // Initialize Sortable
         new Sortable(imagePreview, {
             animation: 150,
