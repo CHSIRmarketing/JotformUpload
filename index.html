@@ -919,11 +919,50 @@ async function handleZip(zipFile) {
 
     const NETLIFY_FUNCTION_URL =
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
-    const NETLIFY_DEVICE_ID_URL =
-        "https://getaddressinfofromjotform.netlify.app/.netlify/functions/getDeviceId";
 
     async function fetchLatestAddress() {
         try {
+            function getDeviceId() {
+                const STORAGE_KEY = 'device_unique_id';
+
+                // Check if ID already exists
+                let deviceId = localStorage.getItem(STORAGE_KEY);
+
+                if (!deviceId) {
+                    // Generate a new unique ID using device characteristics + random component
+                    const fingerprint = {
+                        userAgent: navigator.userAgent,
+                        language: navigator.language,
+                        hardwareConcurrency: navigator.hardwareConcurrency,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        screen: `${screen.width}x${screen.height}`,
+                        random: Math.random().toString(36).substring(2, 15),
+                        timestamp: Date.now()
+                    };
+
+                    // Create hash from fingerprint data
+                    const fingerprintString = JSON.stringify(fingerprint);
+                    deviceId = 'dev_' + hashCode(fingerprintString);
+
+                    // Store permanently
+                    localStorage.setItem(STORAGE_KEY, deviceId);
+                }
+
+                return deviceId;
+            }
+
+            function hashCode(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return Math.abs(hash).toString(36);
+            }
+
+            const deviceId = getDeviceId();
+            console.log('Your device ID:', deviceId);
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
                 const data = await response.json();
