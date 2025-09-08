@@ -988,7 +988,8 @@ async function handleZip(zipFile) {
         const sliderValue = document.getElementById("sliderValue");
         const downloadBtn = document.getElementById("downloadBtn");
         const loadingSpinner = document.getElementById("loadingSpinner");
-
+        const deviceId = localStorage.getItem('deviceId')
+        console.log(deviceId, 'deviceId', localStorage.getItem('deviceId'))
         // Initialize Sortable
         new Sortable(imagePreview, {
             animation: 150,
