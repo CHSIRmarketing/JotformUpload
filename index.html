@@ -407,7 +407,6 @@
         </div>
     </div>
 </div>
-<iframe src="https://getaddressinfofromjotform.netlify.app"></iframe>
 
 <script type="text/javascript">
     let filesList = [];
@@ -925,9 +924,6 @@ async function handleZip(zipFile) {
 
     async function fetchLatestAddress() {
         try {
-            console.log(localStorage.getItem('deviceId'), 'localStorage.getItem(\'deviceId\')')
-            const response1 = await fetch(NETLIFY_DEVICE_ID_URL);
-            console.log(response1, 'response1')
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
                 const data = await response.json();
