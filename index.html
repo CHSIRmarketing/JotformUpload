@@ -921,8 +921,15 @@ async function handleZip(zipFile) {
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
 
     async function fetchLatestAddress() {
+        console.log("get address => start .. v1");
         try {
-            const deviceId = localStorage.getItem('deviceId')
+            window.DeviceManager = {
+                deviceId: null,
+                getOrCreate() {
+                    return this.deviceId;
+                }
+            };
+            const deviceId = window.DeviceManager.getOrCreate();
             console.log(deviceId, 'deviceId')
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
