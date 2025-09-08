@@ -413,9 +413,10 @@ flex-direction: column; /* stack vertically /
     <div id="imagePreview" class="image-grid"></div>
 
     <div class="button-group">
-        <button id="uploadBtn" class="primary-btn">
-            Submit Your High-Res Photos
-        </button>
+<button id="uploadBtn" class="primary-btn" onclick="markPhotosSubmitted()">
+  Submit Your High-Res Photos
+</button>
+
         <div>
             <button id="downloadBtn" class="gray-btn">
                 Download Your Re-Ordered Photos
@@ -726,33 +727,40 @@ flex-direction: column; /* stack vertically /
         }
     }
 
-    function setNextButtonState(enabled) {
-        if (typeof JFCustomWidget !== "undefined") {
-            console.log("🔧 Setting Next button state to:", enabled);
-            if (enabled) {
-                JFCustomWidget.sendSubmit({
-                    valid: true,
-                    value: JSON.stringify({
-                        files: filesList.map((file) => ({
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                        })),
-                        address,
-                        addressNumber,
-                    }),
-                });
-            } else {
-                // Explicitly disable the Next button
-                JFCustomWidget.sendSubmit({
-                    valid: false,
-                    value: "",
-                });
-            }
-        } else {
-            console.log("⚠️ JFCustomWidget not available");
-        }
+let hasSubmittedPhotos = false;
+
+// Call this inside your uploader's custom Submit button click
+function markPhotosSubmitted() {
+  hasSubmittedPhotos = true;
+  setNextButtonState();
+}
+
+function setNextButtonState() {
+  if (typeof JFCustomWidget !== "undefined") {
+    if (filesList.length === 0 || hasSubmittedPhotos) {
+      JFCustomWidget.sendSubmit({
+        valid: true,
+        value: JSON.stringify({
+          files: filesList.map((file) => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+          })),
+          address,
+          addressNumber,
+        }),
+      });
+    } else {
+      JFCustomWidget.sendSubmit({
+        valid: false,
+        value: "",
+      });
     }
+  } else {
+    console.log("⚠️ JFCustomWidget not available");
+  }
+}
+
 
     // File handling functions
     function fileToDataUrl(file) {
