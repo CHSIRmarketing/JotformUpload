@@ -1031,32 +1031,46 @@
         // Event Listeners
         dropZone.addEventListener("click", () => fileInput.click());
 
-        dropZone.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            dropZone.style.background = "#eef";
-        });
+dropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+  dropZone.style.background = "#eef";
+});
+
 
         dropZone.addEventListener("dragleave", () => {
             dropZone.style.background = "";
         });
 
-        dropZone.addEventListener("drop", (e) => {
-            e.preventDefault();
-            dropZone.style.background = "";
-            const isFolderDrop = [...e.dataTransfer.items].some(
-                (item) =>
-                    item.kind === "file" &&
-                    item.webkitGetAsEntry &&
-                    item.webkitGetAsEntry().isDirectory
-            );
-            if (isFolderDrop) {
-                alert(
-                    "To upload a folder, please click the drop area and select it."
-                );
-                return;
-            }
-            handleFiles(e.dataTransfer.files);
-        });
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.style.background = "";
+
+  const items = [...(e.dataTransfer?.items || [])];
+  const files = [...(e.dataTransfer?.files || [])];
+
+  // If any dropped item is a .zip file, allow it
+  const hasZip = files.some(f => /\.zip$/i.test(f.name));
+
+  // Detect true directory drags (Chrome/Safari)
+  const isRealDirectory = items.some(it => {
+    try {
+      const entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+      return entry && entry.isDirectory;
+    } catch {
+      return false;
+    }
+  });
+
+  // Only block REAL folders; let .zip files pass
+  if (isRealDirectory && !hasZip) {
+    alert("To upload a folder, please click the drop area and select it.");
+    return;
+  }
+
+  handleFiles(e.dataTransfer.files);
+});
+
 
         //download re-arrange files as a zip
         downloadBtn.addEventListener("click", async (e) => {
