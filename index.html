@@ -942,23 +942,10 @@ async function handleZip(zipFile) {
 
                     // Create hash from fingerprint data
                     const fingerprintString = JSON.stringify(fingerprint);
-                    deviceId = 'dev_' + hashCode(fingerprintString);
-
-                    // Store permanently
-                    localStorage.setItem(STORAGE_KEY, deviceId);
+                    deviceId = 'dev_' + fingerprintString;
                 }
 
                 return deviceId;
-            }
-
-            function hashCode(str) {
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32-bit integer
-                }
-                return Math.abs(hash).toString(36);
             }
 
             const deviceId = getDeviceId();
