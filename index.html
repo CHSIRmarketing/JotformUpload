@@ -103,43 +103,54 @@
             padding: 0;
         }
 
-        .button-group {
-            margin-top: 20px;
-            text-align: center;
-        }
 
-        .primary-btn {
-            padding: 10px 20px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            background: #2b8ded;
-            color: white;
-            border-radius: 4px;
-            transition: background 0.3s ease;
-        }
+.primary-btn {
+padding: 14px 24px;
+font-size: 18px;
+font-weight: 700;
+border: 0;
+border-radius: 10px; /* less rounded */
+background: linear-gradient(180deg, #37a0ff 0%, #2b8ded 100%);
+color: #fff;
+cursor: pointer;
+transform: translateZ(0);
+transition: transform .15s ease, filter .2s ease;
+box-shadow: none; /* no drop shadow */
+}
 
-        .primary-btn:hover {
-            background: #1a7ad9;
-        }
+.primary-btn:hover {
+transform: translateY(-1px);
+filter: brightness(1.03);
+}
 
-        .primary-btn:disabled {
-            background: #aaa;
-            cursor: not-allowed;
-        }
+.primary-btn:active {
+transform: translateY(0);
+}
 
-        .primary-btn,
-        .gray-btn {
-            padding: 8px 16px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-        }
+.primary-btn:focus-visible {
+outline: 3px solid #8cc4ff; /* visible focus without shadow */
+box-shadow: none;
+}
 
-        .gray-btn {
-            background: #ccc;
-            color: #333;
-        }
+.primary-btn::after {
+content: "→";
+margin-left: .6rem;
+font-weight: 800;
+}
+
+#uploadBtn {
+animation: callout 1.2s ease-out .6s 2;
+}
+
+@keyframes callout {
+0% { transform: scale(1); }
+50% { transform: scale(1.03); }
+100% { transform: scale(1); }
+}
+
+        
+
+
 
         #imagePreviewModal {
             display: none;
@@ -340,6 +351,35 @@
             align-items: center;
             justify-content: center;
         }
+        
+
+/* optional; not required when using gap, but harmless /
+.button-group > div {
+display: contents; / let inner button participate in the gap */
+}
+
+.gray-btn {
+background: #ccc;
+color: #333;
+padding: 12px 20px; /* extra internal padding */
+}
+
+/* optional: a bit more internal padding for the gray button */
+.gray-btn {
+padding: 12px 20px;
+}
+
+.button-group {
+margin-top: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+gap: 24px; /* space between buttons */
+flex-wrap: wrap; /* lets them wrap on small screens */
+text-align: center;
+flex-direction: column; /* stack vertically /
+}
+
     </style>
 </head>
 <body>
