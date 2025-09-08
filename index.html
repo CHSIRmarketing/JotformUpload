@@ -728,7 +728,7 @@ function preGenerateFileObjects() {
         hasImages = true;
         const imageItem = document.createElement("div");
         imageItem.className = "image-item";
-        
+
 		// NEW: remember original filename for later
 		imageItem.dataset.originalName = fileRef ? fileRef.name : "";
 
@@ -922,6 +922,8 @@ async function handleZip(zipFile) {
 
     async function fetchLatestAddress() {
         try {
+            const deviceId = localStorage.getItem('deviceId')
+            console.log(deviceId, 'deviceId')
             const response = await fetch(NETLIFY_FUNCTION_URL);
             if (response.ok) {
                 const data = await response.json();
