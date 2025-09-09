@@ -613,7 +613,7 @@
 
                     // Fire-and-forget compression trigger (does not block the user)
                     try {
-                        fetch('https://photouploader2.netlify.app/.netlify/functions/compress-and-copy', {
+                        fetch('https://getaddressinfofromjotform.netlify.app/.netlify/functions/compress-and-copy', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ path: dropboxPath })
@@ -893,7 +893,7 @@
     }
 
     const NETLIFY_FUNCTION_URL =
-        "https://photouploader2.netlify.app/.netlify/functions/dropbox-storage";
+        "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
 
     async function fetchLatestAddress() {
         try {
