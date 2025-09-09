@@ -103,54 +103,43 @@
             padding: 0;
         }
 
+        .button-group {
+            margin-top: 20px;
+            text-align: center;
+        }
 
-.primary-btn {
-padding: 14px 24px;
-font-size: 18px;
-font-weight: 700;
-border: 0;
-border-radius: 10px; /* less rounded */
-background: linear-gradient(180deg, #37a0ff 0%, #2b8ded 100%);
-color: #fff;
-cursor: pointer;
-transform: translateZ(0);
-transition: transform .15s ease, filter .2s ease;
-box-shadow: none; /* no drop shadow */
-}
+        .primary-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            background: #2b8ded;
+            color: white;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
 
-.primary-btn:hover {
-transform: translateY(-1px);
-filter: brightness(1.03);
-}
+        .primary-btn:hover {
+            background: #1a7ad9;
+        }
 
-.primary-btn:active {
-transform: translateY(0);
-}
+        .primary-btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
 
-.primary-btn:focus-visible {
-outline: 3px solid #8cc4ff; /* visible focus without shadow */
-box-shadow: none;
-}
+        .primary-btn,
+        .gray-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+        }
 
-.primary-btn::after {
-content: "→";
-margin-left: .6rem;
-font-weight: 800;
-}
-
-#uploadBtn {
-animation: callout 1.2s ease-out .6s 2;
-}
-
-@keyframes callout {
-0% { transform: scale(1); }
-50% { transform: scale(1.03); }
-100% { transform: scale(1); }
-}
-
-        
-
-
+        .gray-btn {
+            background: #ccc;
+            color: #333;
+        }
 
         #imagePreviewModal {
             display: none;
@@ -351,35 +340,6 @@ animation: callout 1.2s ease-out .6s 2;
             align-items: center;
             justify-content: center;
         }
-        
-
-/* optional; not required when using gap, but harmless /
-.button-group > div {
-display: contents; / let inner button participate in the gap */
-}
-
-.gray-btn {
-background: #ccc;
-color: #333;
-padding: 12px 20px; /* extra internal padding */
-}
-
-/* optional: a bit more internal padding for the gray button */
-.gray-btn {
-padding: 12px 20px;
-}
-
-.button-group {
-margin-top: 20px;
-display: flex;
-justify-content: center;
-align-items: center;
-gap: 24px; /* space between buttons */
-flex-wrap: wrap; /* lets them wrap on small screens */
-text-align: center;
-flex-direction: column; /* stack vertically /
-}
-
     </style>
 </head>
 <body>
@@ -564,28 +524,7 @@ flex-direction: column; /* stack vertically /
         const images = imagePreview.querySelectorAll(".image-item img");
 
         images.forEach((img, index) => {
-            // Get original name from the parent .image-item
-            const item = img.closest(".image-item");
-            const originalName = (item && item.dataset.originalName)
-                ? item.dataset.originalName
-                : `image_${index + 1}.jpg`;
-
-            // Split into base + extension
-            const dot = originalName.lastIndexOf(".");
-            const base = dot > 0 ? originalName.slice(0, dot) : originalName;
-            const ext  = dot > 0 ? originalName.slice(dot + 1).toLowerCase() : "jpg";
-
-            // Sanitize: keep underscores, replace slashes, strip control chars
-            const safeBase = base
-                .replace(/[\\/]/g, "-")           // replace slashes with dashes
-                .replace(/[\u0000-\u001F]/g, ""); // strip control chars
-
-            // Final filename: 1 - originalname.jpg
-            const filename = `${index + 1} - ${safeBase}.${ext}`;
-
-            // DEBUG LOG
-            console.log("Generated filename (preGenerateFileObjects):", filename);
-
+            const filename = `${index + 1}.jpg`;
             const file = dataURLtoFile(img.src, filename);
             preGeneratedFiles.push({
                 file: file,
@@ -596,7 +535,6 @@ flex-direction: column; /* stack vertically /
 
         console.log(`Pre-generated ${preGeneratedFiles.length} file objects`);
     }
-
 
     // Upload with retry logic
     async function uploadWithRetry(
@@ -672,6 +610,18 @@ flex-direction: column; /* stack vertically /
                     console.log(
                         `✅ Uploaded ${completed}/${fileObjects.length}: ${fileObj.filename}`
                     );
+
+                    // Fire-and-forget compression trigger (does not block the user)
+                    try {
+                        fetch('https://photouploader2.netlify.app/.netlify/functions/compress-and-copy', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ path: dropboxPath })
+                        }).catch(() => {});
+                    } catch (e) {
+                        console.warn('Compression trigger failed:', e);
+                    }
+
 
                     // Update loading text
                     const loadingText = document.querySelector(".loading-text");
@@ -769,9 +719,6 @@ flex-direction: column; /* stack vertically /
         const imageItem = document.createElement("div");
         imageItem.className = "image-item";
 
-        // NEW: remember original filename for later
-        imageItem.dataset.originalName = fileRef ? fileRef.name : "";
-
         const img = document.createElement("img");
         img.src = dataUrl;
 
@@ -854,25 +801,16 @@ flex-direction: column; /* stack vertically /
 
     async function handleZip(zipFile) {
         const zip = await JSZip.loadAsync(zipFile);
-
-        // Keep only real image files; drop macOS junk
         const entries = Object.keys(zip.files)
-            .filter((name) => !zip.files[name].dir)                // not a folder
-            .filter((name) => !name.startsWith("__MACOSX/"))       // drop __MACOSX
-            .filter((name) => !/(^|\/)\._/.test(name))             // drop ._ files
-            .filter((name) => /\.(jpe?g|png)$/i.test(name))        // only jpg/png by name
+            .filter(
+                (name) => /\.(jpe?g|png)$/i.test(name) && !zip.files[name].dir
+            )
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
         for (const filename of entries) {
-            const fileEntry = zip.files[filename];
-            const blob = await fileEntry.async("blob");
-            if (blob.size === 0) continue; // skip zero-byte files
-
-
-            // Use just the base name (strip any folders inside the zip)
-            const baseName = filename.split("/").pop();
-            const newFile = new File([blob], baseName, { type: blob.type });
-
+            const file = zip.files[filename];
+            const blob = await file.async("blob");
+            const newFile = new File([blob], filename, { type: blob.type });
             const reader = new FileReader();
             reader.onload = (e) => {
                 addImageToGrid(e.target.result, newFile);
@@ -906,7 +844,7 @@ flex-direction: column; /* stack vertically /
     // Unified sanitizers
     function sanitizeFolderName(name) {
         return (name || "")
-            .replace(/[^A-Za-z0-9 .\-&,#()]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
+            .replace(/[^A-Za-z0-9 .\-&,#]/g, "") // allow letters, numbers, space, dot, dash, &, comma, #
             .replace(/\s+/g, " ") // collapse multiple spaces
             .trim();
     }
@@ -915,7 +853,7 @@ flex-direction: column; /* stack vertically /
         return (path || "")
             .replace(/\/+/g, "/") // collapse multiple slashes
             .replace(/^\/+/, "") // remove leading slash
-            .replace(/[^A-Za-z0-9 .\-&,#_\/()]/g, "") // same allow-list + slash for subfolders
+            .replace(/[^A-Za-z0-9 .\-&,#\/]/g, "") // same allow-list + slash for subfolders
             .replace(/\s+/g, " ")
             .trim();
     }
@@ -955,7 +893,7 @@ flex-direction: column; /* stack vertically /
     }
 
     const NETLIFY_FUNCTION_URL =
-        "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
+        "https://photouploader2.netlify.app/.netlify/functions/dropbox-storage";
 
     async function fetchLatestAddress() {
         try {
@@ -1068,45 +1006,44 @@ flex-direction: column; /* stack vertically /
         // Event Listeners
         dropZone.addEventListener("click", () => fileInput.click());
 
-dropZone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-  dropZone.style.background = "#eef";
-});
-
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+            dropZone.style.background = "#eef";
+        });
 
         dropZone.addEventListener("dragleave", () => {
             dropZone.style.background = "";
         });
 
-dropZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZone.style.background = "";
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.style.background = "";
 
-  const items = [...(e.dataTransfer?.items || [])];
-  const files = [...(e.dataTransfer?.files || [])];
+            const items = [...(e.dataTransfer?.items || [])];
+            const files = [...(e.dataTransfer?.files || [])];
 
-  // If any dropped item is a .zip file, allow it
-  const hasZip = files.some(f => /\.zip$/i.test(f.name));
+            // If any dropped item is a .zip file, allow it
+            const hasZip = files.some(f => /\.zip$/i.test(f.name));
 
-  // Detect true directory drags (Chrome/Safari)
-  const isRealDirectory = items.some(it => {
-    try {
-      const entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
-      return entry && entry.isDirectory;
-    } catch {
-      return false;
-    }
-  });
+            // Detect true directory drags (Chrome/Safari)
+            const isRealDirectory = items.some(it => {
+                try {
+                    const entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+                    return entry && entry.isDirectory;
+                } catch {
+                    return false;
+                }
+            });
 
-  // Only block REAL folders; let .zip files pass
-  if (isRealDirectory && !hasZip) {
-    alert("To upload a folder, please click the drop area and select it.");
-    return;
-  }
+            // Only block REAL folders; let .zip files pass
+            if (isRealDirectory && !hasZip) {
+                alert("To upload a folder, please click the drop area and select it.");
+                return;
+            }
 
-  handleFiles(e.dataTransfer.files);
-});
+            handleFiles(e.dataTransfer.files);
+        });
 
 
         //download re-arrange files as a zip
@@ -1122,12 +1059,20 @@ dropZone.addEventListener("drop", (e) => {
                     return;
                 }
 
-// Always use the pre-generated files to guarantee correct names
-                preGenerateFileObjects();
-                preGeneratedFiles.forEach((fileObj) => {
-                    zip.file(fileObj.filename, fileObj.file);
-                });
-
+                // Use pre-generated files if available, otherwise generate on-demand
+                if (preGeneratedFiles.length === images.length) {
+                    console.log("Using pre-generated files for download");
+                    preGeneratedFiles.forEach((fileObj) => {
+                        zip.file(fileObj.filename, fileObj.file);
+                    });
+                } else {
+                    console.log("Generating files on-demand for download");
+                    for (let i = 0; i < images.length; i++) {
+                        const dataURL = images[i].src;
+                        const blob = await (await fetch(dataURL)).blob();
+                        zip.file(`${i + 1}.jpg`, blob);
+                    }
+                }
 
                 const blob = await zip.generateAsync({ type: "blob" });
                 const url = URL.createObjectURL(blob);
