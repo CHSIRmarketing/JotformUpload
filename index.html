@@ -956,6 +956,8 @@ flex-direction: column; /* stack vertically /
 
     const NETLIFY_FUNCTION_URL =
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-storage";
+    const NETLIFY_NEW_FUNCTION_URL =
+        "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-new-storage";
 
     async function fetchLatestAddress() {
         try {
@@ -986,9 +988,12 @@ flex-direction: column; /* stack vertically /
             const deviceId = getDeviceId();
 
             const response = await fetch(`${NETLIFY_FUNCTION_URL}?deviceId=${deviceId}`);
+            const responseNew = await fetch(`${NETLIFY_NEW_FUNCTION_URL}?deviceId=${deviceId}`);
             if (response.ok) {
                 const data = await response.json();
+                const dataNew = await responseNew.json();
                 console.log("🟢 [Proxy result ) = ", "success", data);
+                console.log("🟢", "success", dataNew);
                 address = data.address;
 
                 // Fix #1: Always use the current submission's unit number, even if empty
