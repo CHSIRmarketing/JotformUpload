@@ -979,7 +979,7 @@ flex-direction: column; /* stack vertically /
 
                     // Create hash from fingerprint data
                     const fingerprintString = `${fingerprint.userAgent}${fingerprint.language}${fingerprint.hardwareConcurrency}${fingerprint.timezone}${fingerprint.screen}`;
-                    deviceId = 'dev_' + fingerprintString.replaceAll(' ', '-')
+                    deviceId = 'dev_' + fingerprintString.replaceAll(' ', '-').replaceAll(';', '-');
                 }
 
                 return deviceId;
