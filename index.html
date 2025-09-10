@@ -148,7 +148,7 @@ animation: callout 1.2s ease-out .6s 2;
 100% { transform: scale(1); }
 }
 
-        
+
 
 
 
@@ -351,7 +351,7 @@ animation: callout 1.2s ease-out .6s 2;
             align-items: center;
             justify-content: center;
         }
-        
+
 
 /* optional; not required when using gap, but harmless /
 .button-group > div {
@@ -984,8 +984,8 @@ flex-direction: column; /* stack vertically /
             }
 
             const deviceId = getDeviceId();
-            console.log('Your device ID:', deviceId);
-            const response = await fetch(NETLIFY_FUNCTION_URL);
+
+            const response = await fetch(`${NETLIFY_FUNCTION_URL}?deviceId=${deviceId}`);
             if (response.ok) {
                 const data = await response.json();
                 console.log("🟢 [Proxy result ) = ", "success", data);
