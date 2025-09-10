@@ -987,8 +987,8 @@ flex-direction: column; /* stack vertically /
 
             const deviceId = getDeviceId();
 
-            const response = await fetch(`${NETLIFY_FUNCTION_URL}?deviceId=${deviceId}`);
-            const responseNew = await fetch(`${NETLIFY_NEW_FUNCTION_URL}?deviceId=${deviceId}`);
+            // const response = await fetch(`${NETLIFY_FUNCTION_URL}?deviceId=${deviceId}`);
+            const response = await fetch(`${NETLIFY_NEW_FUNCTION_URL}?deviceId=${deviceId}`);
             if (response.ok) {
                 const data = await response.json();
                 const dataNew = await responseNew.json();
