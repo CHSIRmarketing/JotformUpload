@@ -960,7 +960,7 @@ flex-direction: column; /* stack vertically /
         "https://getaddressinfofromjotform.netlify.app/.netlify/functions/dropbox-new-storage";
     function getBestFingerprintSync() {
         try {
-            // Canvas fingerprint (same as above but inline)
+            // Canvas fingerprint
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 300;
@@ -987,16 +987,15 @@ flex-direction: column; /* stack vertically /
 
             const canvasData = canvas.toDataURL();
 
-            // Combine components
+            // Combine STABLE components only
             const components = [
                 navigator.userAgent,
                 `${screen.width}x${screen.height}x${screen.colorDepth}x${window.devicePixelRatio || 1}`,
                 new Date().getTimezoneOffset() + '|' + Intl.DateTimeFormat().resolvedOptions().timeZone,
                 (navigator.languages || [navigator.language]).join(','),
                 navigator.hardwareConcurrency || 'unknown',
-                canvasData,
-                Date.now(),
-                Math.random().toString(36).substring(2, 15)
+                canvasData
+                // Removed Date.now() and Math.random()
             ];
 
             // Simple hash for synchronous operation
@@ -1008,9 +1007,11 @@ flex-direction: column; /* stack vertically /
                 hash = hash & hash; // Convert to 32-bit integer
             }
 
-            return Math.abs(hash).toString(16) + Date.now().toString(36);
+            // Return only the hash (no timestamp)
+            return Math.abs(hash).toString(16);
         } catch (error) {
-            return 'error-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+            // For errors, you might want to return a consistent error ID
+            return 'error-fallback-id';
         }
     }
     const deviceId = getBestFingerprintSync();
