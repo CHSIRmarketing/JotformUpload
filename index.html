@@ -1019,11 +1019,21 @@ flex-direction: column; /* stack vertically /
     async function fetchLatestAddress() {
         try {
             // const response = await fetch(`${NETLIFY_FUNCTION_URL}?deviceId=${deviceId}`);
-            const response = await fetch(`${NETLIFY_NEW_FUNCTION_URL}?deviceId=${deviceId}`);
+            const response = await fetch(`${NETLIFY_NEW_FUNCTION_URL}?deviceId=70038bdc`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
-                    return data.data
+                    const dataNew = await responseNew.json();
+                    console.log("🟢 [Proxy result ) = ", "success", data);
+                    console.log("🟢", "success", dataNew);
+                    address = data.data.address;
+
+                    // Fix #1: Always use the current submission's unit number, even if empty
+                    // This prevents using the previous submission's unit number
+                    addressNumber = data.data.unitNumber || "";
+
+                    console.log(`📍 Address: "${address}", Unit: "${addressNumber}"`);
+                    return data.data; // <-- return the fetched data
                 }
             } else {
                 console.log("🟢 [Proxy result ) = ", "error", response);
